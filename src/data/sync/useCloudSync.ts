@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { isSupabaseConfigured } from '../supabase/client';
 import { useSession } from '@/features/auth/useSession';
 import { syncBidirectional } from './syncService';
+import { asegurarDueno } from './dueno';
 
 export type EstadoSync = 'inactivo' | 'sincronizando' | 'ok' | 'error';
 
@@ -50,13 +51,20 @@ export function useCloudSync() {
   const sincronizar = useCallback(async (forzar = false) => {
     if (!isSupabaseConfigured() || !userId) return;
     if (corriendoRef.current) return;
-    if (!forzar && Date.now() - ultimaRef.current < MIN_ENTRE_SYNCS_MS) return;
-    if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
 
     corriendoRef.current = true;
-    setEstado('sincronizando');
-    setError('');
     try {
+      // Lo PRIMERO, y aunque no haya red: si lo guardado en este
+      // dispositivo es de otra cuenta, se borra antes de que la app lo
+      // muestre o el push lo suba a la cuenta equivocada. Es local, no
+      // necesita internet, y no puede quedar detrás de ningún return.
+      await asegurarDueno(userId);
+
+      if (!forzar && Date.now() - ultimaRef.current < MIN_ENTRE_SYNCS_MS) return;
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+
+      setEstado('sincronizando');
+      setError('');
       await syncBidirectional();
       ultimaRef.current = Date.now();
       setEstado('ok');
@@ -65,6 +73,9 @@ export function useCloudSync() {
       setEstado('error');
     } finally {
       corriendoRef.current = false;
+      // En TODA salida, incluida la de "no hay red": si no, la pantalla de
+      // carga se queda para siempre y una app offline-first resulta
+      // inservible justo cuando no hay internet.
       setPrimeraHecha(true);
     }
   }, [userId]);

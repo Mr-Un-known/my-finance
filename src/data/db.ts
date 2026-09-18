@@ -4,6 +4,7 @@ import type {
 } from '@/domain/types';
 import type { ConceptIndexEntry } from '@/domain/inference/conceptInference';
 import type { Tombstone } from './sync/tombstones';
+import type { MetaFila } from './sync/dueno';
 
 /**
  * Nombre con prefijo propio: en GitHub Pages todos los proyectos de
@@ -22,6 +23,8 @@ export class MyFinanceDB extends Dexie {
   reminders!: EntityTable<Reminder, 'id'>;
   conceptIndex!: EntityTable<ConceptIndexEntry, 'id'>;
   deletions!: EntityTable<Tombstone, 'id'>;
+  /** Datos del dispositivo, nunca sincronizados. Ver sync/dueno.ts. */
+  meta!: EntityTable<MetaFila, 'id'>;
 
   constructor() {
     super(DB_NAME);
@@ -46,6 +49,12 @@ export class MyFinanceDB extends Dexie {
     // (ver data/sync/tombstones.ts).
     this.version(3).stores({
       deletions: 'id, entity, deletedAt',
+    });
+    // v4: de quién son estos datos. Sin esto, cerrar sesión y entrar con
+    // otra cuenta en el mismo navegador subía los movimientos de la
+    // primera persona a la cuenta de la segunda (ver sync/dueno.ts).
+    this.version(4).stores({
+      meta: 'id',
     });
   }
 }
