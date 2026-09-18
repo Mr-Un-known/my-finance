@@ -1,0 +1,92 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { Screen } from '@/components/ui/Screen';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { localRepository } from '@/data/local/localRepository';
+import { materializeRecurringRules } from '@/data/local/materialize';
+import { formatMoney } from '@/domain/money/format';
+import type { RecurringRule } from '@/domain/types';
+import { RecurringRuleForm } from './RecurringRuleForm';
+
+const FREQ_LABEL: Record<RecurringRule['frequency'], string> = {
+  monthly: 'Mensual', weekly: 'Semanal', biweekly: 'Quincenal', yearly: 'Anual',
+};
+
+export function RecurringRulesScreen() {
+  const navigate = useNavigate();
+  const rules = useLiveQuery(() => localRepository.listRecurringRules(), []) ?? [];
+  const categories = useLiveQuery(() => localRepository.listCategories(), []) ?? [];
+  const paymentMethods = useLiveQuery(() => localRepository.listPaymentMethods(), []) ?? [];
+  const [editing, setEditing] = useState<RecurringRule | null>(null);
+  const [creating, setCreating] = useState(false);
+
+  async function handleSave(rule: RecurringRule) {
+    await localRepository.saveRecurringRule(rule);
+    setEditing(null);
+    setCreating(false);
+    await materializeRecurringRules(); // genera de una vez las instancias futuras
+  }
+
+  async function handleDelete() {
+    if (!editing) return;
+    await localRepository.deleteRecurringRule(editing.id);
+    setEditing(null);
+  }
+
+  return (
+    <Screen title="Recurrentes" subtitle="Gastos fijos e ingresos que se repiten">
+      <button
+        type="button"
+        onClick={() => navigate(-1)}
+        style={{ marginBottom: 16, background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+      >
+        ← Volver a ajustes
+      </button>
+
+      {rules.length === 0 ? (
+        <EmptyState title="Sin recurrentes" body="Arriendo, suscripciones, tu sueldo — cualquier movimiento que se repite solo se configura una vez." />
+      ) : (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--radius-m)', padding: '4px 14px', marginBottom: 16 }}>
+          {rules.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => setEditing(r)}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 0', borderBottom: '1px solid var(--line)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', opacity: r.isActive ? 1 : 0.5 }}
+            >
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: 'block', fontWeight: 600 }}>{r.name}</span>
+                <span style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)' }}>
+                  {FREQ_LABEL[r.frequency]}{r.dayOfMonth ? ` · día ${r.dayOfMonth}` : ''}{!r.isActive ? ' · Pausado' : ''}
+                </span>
+              </span>
+              <span className="figures" style={{ fontWeight: 600, color: r.type === 'income' ? 'var(--positive)' : 'var(--text)' }}>
+                {r.type === 'income' ? '+' : ''}{formatMoney(r.amount)}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setCreating(true)}
+        style={{ width: '100%', minHeight: 'var(--tap)', borderRadius: 'var(--radius-s)', border: '1px dashed var(--line-strong)', background: 'var(--surface)', color: 'var(--text)', fontWeight: 600, cursor: 'pointer' }}
+      >
+        + Nuevo recurrente
+      </button>
+
+      {(editing || creating) && (
+        <RecurringRuleForm
+          existing={editing}
+          categories={categories}
+          paymentMethods={paymentMethods}
+          onSave={handleSave}
+          onDelete={editing ? handleDelete : undefined}
+          onCancel={() => { setEditing(null); setCreating(false); }}
+        />
+      )}
+    </Screen>
+  );
+}

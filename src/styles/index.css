@@ -1,0 +1,39 @@
+@import 'tailwindcss';
+@import './tokens.css';
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: var(--step-0);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+/* Todas las cifras en tabular para que las columnas de pesos no bailen. */
+.figures {
+  font-family: var(--font-figures);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.015em;
+}
+
+button { font: inherit; color: inherit; }
+
+:focus-visible {
+  outline: 2px solid var(--q10);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

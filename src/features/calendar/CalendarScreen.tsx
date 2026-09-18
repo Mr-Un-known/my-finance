@@ -1,0 +1,130 @@
+import { useMemo, useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { Screen } from '@/components/ui/Screen';
+import { db } from '@/data/db';
+import { localRepository } from '@/data/local/localRepository';
+import { formatMoney } from '@/domain/money/format';
+import { formatShortDate } from '@/lib/formatShortDate';
+import { todayISO } from '@/lib/todayISO';
+import { buildCalendarGrid, shiftMonthISO } from './calendarGrid';
+
+const WEEKDAYS = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+const MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+export function CalendarScreen() {
+  const today = todayISO();
+  const [year, month] = today.split('-').map(Number) as [number, number];
+  const [view, setView] = useState({ year, month });
+  const [selected, setSelected] = useState(today);
+
+  const transactions = useLiveQuery(() => db.transactions.toArray(), []) ?? [];
+  const categories = useLiveQuery(() => localRepository.listCategories(), []) ?? [];
+  const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
+
+  const markersByDate = useMemo(() => {
+    const map = new Map<string, { income: boolean; expense: boolean; tcPayment: boolean }>();
+    const ensure = (date: string) => {
+      let m = map.get(date);
+      if (!m) { m = { income: false, expense: false, tcPayment: false }; map.set(date, m); }
+      return m;
+    };
+    for (const tx of transactions) {
+      if (tx.status === 'cancelled') continue;
+      const m = ensure(tx.date);
+      if (tx.type === 'income') m.income = true; else m.expense = true;
+      if (tx.cyclePaymentDate) ensure(tx.cyclePaymentDate).tcPayment = true;
+    }
+    return map;
+  }, [transactions]);
+
+  const cells = useMemo(() => buildCalendarGrid(view.year, view.month), [view]);
+
+  const dayTransactions = transactions.filter((t) => t.date === selected);
+  const dayPayments = transactions.filter((t) => t.cyclePaymentDate === selected && t.date !== selected);
+
+  return (
+    <Screen title="Calendario" subtitle="Gastos, ingresos y pagos de TC">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <button type="button" onClick={() => setView((v) => shiftMonthISO(v.year, v.month, -1))} style={navButtonStyle} aria-label="Mes anterior">‹</button>
+        <span style={{ fontWeight: 700 }}>{MONTH_NAMES[view.month - 1]} {view.year}</span>
+        <button type="button" onClick={() => setView((v) => shiftMonthISO(v.year, v.month, 1))} style={navButtonStyle} aria-label="Mes siguiente">›</button>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 4 }}>
+        {WEEKDAYS.map((w, i) => (
+          <div key={i} style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-faint)', fontWeight: 600 }}>{w}</div>
+        ))}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 20 }}>
+        {cells.map((cell) => {
+          const marker = markersByDate.get(cell.date);
+          const isSelected = cell.date === selected;
+          const isToday = cell.date === today;
+          const dayNum = Number(cell.date.slice(8, 10));
+          return (
+            <button
+              key={cell.date}
+              type="button"
+              onClick={() => setSelected(cell.date)}
+              style={{
+                aspectRatio: '1', borderRadius: 10, border: isToday ? '1.5px solid var(--text)' : '1px solid transparent',
+                background: isSelected ? 'var(--text)' : 'transparent', color: isSelected ? 'var(--surface)' : (cell.inMonth ? 'var(--text)' : 'var(--text-faint)'),
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, cursor: 'pointer',
+                opacity: cell.inMonth ? 1 : 0.35,
+              }}
+            >
+              <span style={{ fontSize: 13, fontWeight: isToday ? 700 : 500 }}>{dayNum}</span>
+              <span style={{ display: 'flex', gap: 2, height: 4 }}>
+                {marker?.income && <Dot color={isSelected ? 'var(--surface)' : 'var(--positive)'} />}
+                {marker?.expense && <Dot color={isSelected ? 'var(--surface)' : 'var(--text-muted)'} />}
+                {marker?.tcPayment && <Dot color={isSelected ? 'var(--surface)' : 'var(--q25)'} />}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <h2 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 10px' }}>
+        {formatShortDate(selected).day} de {formatShortDate(selected).month}
+      </h2>
+
+      {dayTransactions.length === 0 && dayPayments.length === 0 ? (
+        <p style={{ color: 'var(--text-faint)', fontSize: 13 }}>Sin movimientos este día.</p>
+      ) : (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--radius-m)', padding: '4px 14px' }}>
+          {dayTransactions.map((tx) => {
+            const cat = tx.categoryId ? categoryById.get(tx.categoryId) : undefined;
+            return (
+              <div key={tx.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
+                <span aria-hidden style={{ fontSize: 18 }}>{cat?.icon ?? '✳️'}</span>
+                <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tx.concept}</span>
+                <span className="figures" style={{ fontWeight: 600, color: tx.type === 'income' ? 'var(--positive)' : 'var(--text)' }}>
+                  {tx.type === 'income' ? '+' : ''}{formatMoney(tx.amount)}
+                </span>
+              </div>
+            );
+          })}
+          {dayPayments.map((tx) => (
+            <div key={`pay-${tx.id}`} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
+              <span aria-hidden style={{ fontSize: 18 }}>💳</span>
+              <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--q25)' }}>
+                Pago TC: {tx.concept}
+              </span>
+              <span className="figures" style={{ fontWeight: 600 }}>{formatMoney(tx.amount)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </Screen>
+  );
+}
+
+function Dot({ color }: { color: string }) {
+  return <span aria-hidden style={{ width: 4, height: 4, borderRadius: 2, background: color, display: 'inline-block' }} />;
+}
+
+const navButtonStyle: React.CSSProperties = {
+  width: 36, height: 36, borderRadius: 18, border: '1px solid var(--line-strong)', background: 'var(--surface)',
+  color: 'var(--text)', fontSize: 18, cursor: 'pointer',
+};

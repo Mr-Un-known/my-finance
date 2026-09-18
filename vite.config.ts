@@ -1,0 +1,58 @@
+import { fileURLToPath, URL } from 'node:url';
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
+import { VitePWA } from 'vite-plugin-pwa';
+
+// base debe coincidir con el nombre del repo en GitHub Pages:
+// https://<usuario>.github.io/my-finance/
+export default defineConfig({
+  base: '/my-finance/',
+  plugins: [
+    react(),
+    tailwindcss(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['apple-touch-icon.png', 'icons/favicon-64.png'],
+      manifest: {
+        id: '/my-finance/',
+        name: 'My Finance',
+        short_name: 'My Finance',
+        description: 'Finanzas personales por quincenas, para Colombia.',
+        lang: 'es-CO',
+        start_url: '/my-finance/',
+        scope: '/my-finance/',
+        display: 'standalone',
+        // theme_color/background_color en claro; el modo oscuro real lo
+        // define la app en runtime via prefers-color-scheme (ver index.html)
+        background_color: '#f6f7f9',
+        theme_color: '#3b5bdb',
+        orientation: 'portrait',
+        icons: [
+          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+      },
+      workbox: {
+        // App shell + assets con cache-first (via el precache de Workbox).
+        // No hay llamadas de red propias que cachear todavia (todo es
+        // IndexedDB local); esto se revisa de nuevo en la Fase 13.
+        globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
+        navigateFallback: '/my-finance/index.html',
+      },
+      devOptions: { enabled: false },
+    }),
+  ],
+  resolve: {
+    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+  },
+  build: {
+    chunkSizeWarningLimit: 600,
+  },
+  test: {
+    environment: 'node',
+    globals: true,
+    include: ['src/**/*.test.ts'],
+  },
+});

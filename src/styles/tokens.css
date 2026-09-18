@@ -1,0 +1,98 @@
+/* ---------------------------------------------------------------
+   My Finance — sistema visual
+   Identidad: la app se organiza por QUINCENAS, asi que cada quincena
+   tiene su propio color. Nunca dudas en cual estas parado.
+     Quincena del 10 -> indigo
+     Quincena del 25 -> ocre
+   El resto de la interfaz es deliberadamente silenciosa para que el
+   numero grande ("cuanto me queda") sea lo unico que grita.
+----------------------------------------------------------------- */
+
+:root {
+  --paper: #f6f7f9;
+  --surface: #ffffff;
+  --surface-sunken: #eceef2;
+  --line: #e2e5ea;
+  --line-strong: #cdd2da;
+
+  --text: #12141a;
+  --text-muted: #6c727f;
+  --text-faint: #9aa0ab;
+
+  --q10: #3b5bdb;
+  --q10-soft: #e8ecfb;
+  --q25: #b0721a;
+  --q25-soft: #f8efdf;
+
+  --positive: #1e8e6a;
+  --positive-soft: #e3f3ed;
+  --committed: #8a5cf6;
+  --danger: #b3261e;
+  --danger-soft: #fae9e8;
+
+  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-figures: 'Instrument Sans', system-ui, sans-serif;
+
+  --step--1: 0.8125rem;
+  --step-0: 0.9375rem;
+  --step-1: 1.0625rem;
+  --step-2: 1.375rem;
+  --step-3: 1.875rem;
+  --step-4: 2.75rem;
+
+  --gap-xs: 0.25rem;
+  --gap-s: 0.5rem;
+  --gap-m: 0.875rem;
+  --gap-l: 1.25rem;
+  --gap-xl: 2rem;
+  --radius-s: 10px;
+  --radius-m: 16px;
+  --radius-l: 22px;
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  --tap: 44px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --paper: #0e1014;
+    --surface: #171a21;
+    --surface-sunken: #101318;
+    --line: #262b34;
+    --line-strong: #39404c;
+    --text: #e8eaee;
+    --text-muted: #949bab;
+    --text-faint: #6b7280;
+    --q10: #8da2f5;
+    --q10-soft: #1b2340;
+    --q25: #e0ac5e;
+    --q25-soft: #35270f;
+    --positive: #4ec49b;
+    --positive-soft: #10281f;
+    --committed: #b093fa;
+    --danger: #ef7b72;
+    --danger-soft: #2e1412;
+  }
+}
+
+:root[data-theme='dark'] {
+  --paper: #0e1014;
+  --surface: #171a21;
+  --surface-sunken: #101318;
+  --line: #262b34;
+  --line-strong: #39404c;
+  --text: #e8eaee;
+  --text-muted: #949bab;
+  --text-faint: #6b7280;
+  --q10: #8da2f5;
+  --q10-soft: #1b2340;
+  --q25: #e0ac5e;
+  --q25-soft: #35270f;
+  --positive: #4ec49b;
+  --positive-soft: #10281f;
+  --committed: #b093fa;
+  --danger: #ef7b72;
+  --danger-soft: #2e1412;
+}
