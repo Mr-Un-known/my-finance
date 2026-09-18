@@ -18,9 +18,27 @@ import { expandRecurringRule } from '@/domain/recurring/expansion';
 import type { ISODate, Transaction } from '@/domain/types';
 import { nowISO, todayISO } from '@/lib/todayISO';
 import { db } from '../db';
+import { deletedIdsOf } from '../sync/tombstones';
 
 const WINDOW_BEFORE_DAYS = 31; // por si una regla quedo sin materializar el mes pasado
 const WINDOW_AFTER_DAYS = 95; // ~3 meses hacia adelante, para "proximos pagos"
+
+/**
+ * El id de una instancia recurrente ES su identidad: regla + periodo.
+ *
+ * Antes era un randomUUID(). Eso hacia imposible respetar un borrado: la
+ * lapida guarda el id de la fila, y con un id aleatorio no habia forma de
+ * saber a que ocurrencia pertenecia una vez borrada. Resultado: borrabas
+ * "Arriendo septiembre" y al siguiente arranque volvia a nacer.
+ *
+ * Siendo deterministico, la lapida ya dice cual ocurrencia murio, y viaja
+ * entre dispositivos sin necesidad de una columna nueva.
+ *
+ * Sigue sin ser adivinable desde fuera: ruleId es un randomUUID.
+ */
+export function occurrenceId(ruleId: string, periodKey: string): string {
+  return `${ruleId}:${periodKey}`;
+}
 
 export interface Range {
   from: ISODate;
@@ -54,11 +72,18 @@ export async function materializeRecurringRules(range: Range = defaultRange()): 
     if (tx.recurringRuleId && tx.periodKey) existing.add(`${tx.recurringRuleId}|${tx.periodKey}`);
   });
 
+  // Y lo que el usuario BORRO. Sin esto, materializar es una maquina de
+  // resucitar: la instancia borrada ya no esta entre las vivas, asi que
+  // se volvia a crear en el siguiente arranque o al navegar de mes.
+  const borradas = deletedIdsOf(await db.deletions.toArray(), 'transactions');
+
   const nuevas: Transaction[] = [];
   for (const rule of rules) {
     const method = rule.paymentMethodId ? methodById.get(rule.paymentMethodId) : undefined;
     for (const occ of expandRecurringRule(rule, range)) {
       if (existing.has(`${rule.id}|${occ.periodKey}`)) continue;
+      const id = occurrenceId(rule.id, occ.periodKey);
+      if (borradas.has(id)) continue;
       existing.add(`${rule.id}|${occ.periodKey}`);
 
       const cycle = method?.type === 'credit'
@@ -67,7 +92,7 @@ export async function materializeRecurringRules(range: Range = defaultRange()): 
 
       const now = nowISO();
       nuevas.push({
-        id: crypto.randomUUID(),
+        id,
         type: rule.type,
         concept: rule.name,
         amount: rule.amount,
