@@ -3,10 +3,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/data/db';
 import { localRepository, DEFAULT_SETTINGS } from '@/data/local/localRepository';
 import { calculateCreditCardCycle } from '@/domain/credit-card/cycle';
-import { inferFromConcept } from '@/domain/inference/conceptInference';
 import { describir } from '@/domain/nlp/describe';
-import { parseUtterance } from '@/domain/nlp/parse';
-import { categoriaFinal, metodoPorTipo } from '@/domain/nlp/resolve';
+import { interpretarTexto } from '@/domain/nlp/interpretar';
 import { formatMoney } from '@/domain/money/format';
 import type { Transaction } from '@/domain/types';
 import { categoryColor } from '@/domain/seed/categoryColor';
@@ -49,26 +47,20 @@ export function QuickEntrySheet({ onClose, onAjustar }: {
   const conceptIndex = useLiveQuery(() => db.conceptIndex.toArray(), []) ?? VACIO;
 
   const hoy = todayISO();
-  const parsed = useMemo(() => parseUtterance(texto, hoy), [texto, hoy]);
-
-  // La categoría: primero lo aprendido del historial, después la tabla de
-  // palabras clave, y por encima de las dos lo que el usuario elija acá.
-  const aprendida = useMemo(
-    () => (parsed.concept
-      ? inferFromConcept(parsed.concept, conceptIndex, { categoryId: null, paymentMethodId: null })
-      : null),
-    [parsed.concept, conceptIndex],
+  // Misma interpretación que la bandeja y el enlace del Atajo.
+  const leido = useMemo(
+    () => interpretarTexto(texto, hoy, {
+      conceptIndex,
+      idsCategorias: categorias.map((c) => c.id),
+      metodos,
+      metodoPorDefecto: settings.defaultPaymentMethodId ?? null,
+    }),
+    [texto, hoy, conceptIndex, categorias, metodos, settings.defaultPaymentMethodId],
   );
-  const idsCategorias = useMemo(() => categorias.map((c) => c.id), [categorias]);
-  const categoriaAuto = categoriaFinal(aprendida?.categoryId ?? null, parsed.categoryIdSugerida, idsCategorias);
-  const categoryId = categoriaElegida !== undefined ? categoriaElegida : categoriaAuto;
+  const { parsed, paymentMethodId } = leido;
 
-  const paymentMethodId =
-    metodoPorTipo(metodos, parsed.metodo)
-    ?? aprendida?.paymentMethodId
-    ?? settings.defaultPaymentMethodId
-    ?? metodos.find((m) => m.isDefault)?.id
-    ?? null;
+  // Lo que el usuario elija acá manda por encima de lo propuesto.
+  const categoryId = categoriaElegida !== undefined ? categoriaElegida : leido.categoryId;
 
   const desc = describir(parsed, {
     hoy,
@@ -76,7 +68,7 @@ export function QuickEntrySheet({ onClose, onAjustar }: {
     categorias,
     paymentMethodId,
     metodos,
-    aprendida: Boolean(aprendida?.source) && categoryId === aprendida?.categoryId,
+    aprendida: leido.vieneDeAprendizaje && categoryId === leido.categoryId,
   });
 
   const puedeGuardar = parsed.amount != null && parsed.amount > 0 && parsed.concept.length > 0;

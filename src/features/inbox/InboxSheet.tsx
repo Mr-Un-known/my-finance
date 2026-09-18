@@ -4,10 +4,8 @@ import { db } from '@/data/db';
 import { localRepository, DEFAULT_SETTINGS } from '@/data/local/localRepository';
 import { cerrarEntrada, type EntradaBandeja } from '@/data/supabase/inbox';
 import { calculateCreditCardCycle } from '@/domain/credit-card/cycle';
-import { inferFromConcept } from '@/domain/inference/conceptInference';
 import { describir } from '@/domain/nlp/describe';
-import { parseUtterance } from '@/domain/nlp/parse';
-import { categoriaFinal, metodoPorTipo } from '@/domain/nlp/resolve';
+import { interpretarTexto } from '@/domain/nlp/interpretar';
 import type { Transaction } from '@/domain/types';
 import { haptic } from '@/lib/haptic';
 import { nowISO, todayISO } from '@/lib/todayISO';
@@ -41,20 +39,16 @@ export function InboxSheet({ entradas, onClose, onCambio }: {
   const idsCategorias = useMemo(() => categorias.map((c) => c.id), [categorias]);
 
   function interpretar(entrada: EntradaBandeja) {
-    const parsed = parseUtterance(entrada.texto, hoy);
-    const aprendida = parsed.concept
-      ? inferFromConcept(parsed.concept, conceptIndex, { categoryId: null, paymentMethodId: null })
-      : null;
-    const categoryId = categoriaFinal(aprendida?.categoryId ?? null, parsed.categoryIdSugerida, idsCategorias);
-    const paymentMethodId =
-      metodoPorTipo(metodos, parsed.metodo)
-      ?? aprendida?.paymentMethodId
-      ?? settings.defaultPaymentMethodId
-      ?? metodos.find((m) => m.isDefault)?.id
-      ?? null;
+    // Misma interpretación que la entrada rápida y el enlace del Atajo.
+    const { parsed, categoryId, paymentMethodId, vieneDeAprendizaje } = interpretarTexto(entrada.texto, hoy, {
+      conceptIndex,
+      idsCategorias,
+      metodos,
+      metodoPorDefecto: settings.defaultPaymentMethodId ?? null,
+    });
     const desc = describir(parsed, {
       hoy, categoryId, categorias, paymentMethodId, metodos,
-      aprendida: Boolean(aprendida?.source) && categoryId === aprendida?.categoryId,
+      aprendida: vieneDeAprendizaje,
     });
     return { parsed, categoryId, paymentMethodId, desc };
   }

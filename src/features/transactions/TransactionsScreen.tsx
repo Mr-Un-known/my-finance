@@ -14,8 +14,7 @@ import { quincenaKey } from '@/domain/quincena/quincena';
 import { withResolvedQuincena } from '@/domain/quincena/resolve';
 import { shiftMonth } from '@/domain/dates';
 import { todayISO } from '@/lib/todayISO';
-import { parseUtterance } from '@/domain/nlp/parse';
-import { metodoPorTipo } from '@/domain/nlp/resolve';
+import { interpretarTexto } from '@/domain/nlp/interpretar';
 import type { Transaction } from '@/domain/types';
 import { groupByQuincena } from './groupByQuincena';
 import { TransactionRow } from './TransactionRow';
@@ -49,6 +48,8 @@ export function TransactionsScreen() {
   const categories = useLiveQuery(() => localRepository.listCategories(), []) ?? VACIO;
   const paymentMethods = useLiveQuery(() => localRepository.listPaymentMethods(), []) ?? VACIO;
   const transactions = useLiveQuery(() => db.transactions.toArray(), []) ?? VACIO;
+  // Lo que la app aprendió: el enlace del Atajo también tiene que usarlo.
+  const conceptIndex = useLiveQuery(() => db.conceptIndex.toArray(), []) ?? VACIO;
 
   // Abrir el form desde una URL. Dos formas, ambas para Atajos de iOS:
   //
@@ -77,14 +78,22 @@ export function TransactionsScreen() {
 
     let nuevo: Prefill;
     if (texto) {
-      const leido = parseUtterance(texto, todayISO());
+      // Misma interpretación que la entrada rápida y la bandeja. Antes acá
+      // se usaba solo la tabla de palabras clave, así que lo que el usuario
+      // le había corregido a la app se ignoraba al entrar por el Atajo.
+      const { parsed: leido, categoryId, paymentMethodId } = interpretarTexto(texto, todayISO(), {
+        conceptIndex,
+        idsCategorias: categories.map((c) => c.id),
+        metodos: paymentMethods,
+        metodoPorDefecto: settings.defaultPaymentMethodId ?? null,
+      });
       nuevo = {
         type: leido.type,
         concept: leido.concept || undefined,
         amountText: leido.amount != null ? String(leido.amount) : undefined,
         date: leido.date,
-        categoryId: leido.categoryIdSugerida,
-        paymentMethodId: metodoPorTipo(paymentMethods, leido.metodo),
+        categoryId,
+        paymentMethodId,
         markPaidNow: leido.yaOcurrio,
       };
     } else {
@@ -103,7 +112,7 @@ export function TransactionsScreen() {
     const next = new URLSearchParams(params);
     for (const k of ['nuevo', 'tipo', 'monto', 'concepto', 'fecha', 'pagado', 'texto', 'sms']) next.delete(k);
     setParams(next, { replace: true });
-  }, [params, setParams, paymentMethods]);
+  }, [params, setParams, paymentMethods, categories, conceptIndex, settings]);
 
   const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const methodById = useMemo(() => new Map(paymentMethods.map((m) => [m.id, m])), [paymentMethods]);
