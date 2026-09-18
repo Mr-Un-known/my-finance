@@ -27,8 +27,9 @@ ejemplo" para ver la app funcionando de una vez.
 | `npm run dev` | Servidor de desarrollo |
 | `npm run build` | Build de producción |
 | `npm run preview` | Sirve el build de producción localmente |
-| `npm run test` | 104 tests unitarios (Vitest) |
-| `npm run test:e2e` | 8 flujos end-to-end (Playwright) — requiere `npx playwright install chromium` una vez |
+| `npm run test` | 123 tests unitarios (Vitest) |
+| `npm run test:e2e` | 10 flujos end-to-end (Playwright), en Chromium y Safari móvil |
+| `npm run preview:iphone` | Abre la app en un iPhone simulado (WebKit). `-- --shots` deja capturas en `preview-shots/` |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | TypeScript, sin emitir (incluye `typecheck:e2e` por separado para `e2e/`) |
 
@@ -37,6 +38,8 @@ ejemplo" para ver la app funcionando de una vez.
 | Archivo | Para qué |
 |---|---|
 | [docs/USER_MANUAL.md](docs/USER_MANUAL.md) | Cómo usar cada pantalla |
+| [docs/ATAJOS_IOS.md](docs/ATAJOS_IOS.md) | Registrar ingresos desde el iPhone con Atajos |
+| [docs/APP_NATIVA.md](docs/APP_NATIVA.md) | Por qué PWA y no Flutter, y qué haría falta para el port |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | De este código a tu iPhone, paso a paso |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Cómo está armado por dentro |
 | [docs/FINANCIAL_LOGIC.md](docs/FINANCIAL_LOGIC.md) | Cómo se calcula cada número |

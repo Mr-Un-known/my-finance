@@ -10,10 +10,9 @@ import { localRepository } from '@/data/local/localRepository';
 import { formatCompact, formatMoney } from '@/domain/money/format';
 import { calculateDebitVsCredit, calculateFixedVsVariable, monthlySeries } from '@/domain/analytics/series';
 import { calculateSpendByCategory } from '@/domain/totals/byCategory';
-import { toMonthlyPoints, toQuarterlyPoints, toYearlyPoints, type PeriodPoint } from './periodAggregate';
+import { filterByRange, rangeBounds, toMonthlyPoints, toQuarterlyPoints, toYearlyPoints, type PeriodPoint, type Range } from './periodAggregate';
 import type { Transaction, Category } from '@/domain/types';
-
-type Range = 'mes' | 'trimestre' | 'año';
+import { todayISO } from '@/lib/todayISO';
 
 const CHART_COLORS = ['#007AFF', '#FF9500', '#34C759', '#AF52DE', '#FF3B30', '#FFCC00', '#5AC8FA', '#FF2D55'];
 
@@ -40,7 +39,9 @@ export function AnalyticsScreen() {
 
   // Filtrar transacciones por el rango seleccionado — TODAS las cards
   // (balance, pie, fijos/variables, débito/tarjeta) usan este filtro.
-  const rangedTransactions = useMemo(() => filterByRange(transactions, range), [transactions, range]);
+  const today = todayISO();
+  const rangedTransactions = useMemo(() => filterByRange(transactions, range, today), [transactions, range, today]);
+  const rangeLabel = useMemo(() => describeRange(range, today), [range, today]);
 
   // Gastos por categoría (top N + "Otros")
   const spendByCategory = useMemo(() => calculateSpendByCategory(rangedTransactions), [rangedTransactions]);
@@ -84,7 +85,7 @@ export function AnalyticsScreen() {
   ];
 
   return (
-    <Screen title="Análisis" subtitle="Mes, trimestre y año">
+    <Screen title="Análisis" subtitle={rangeLabel}>
       <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
         {(['mes', 'trimestre', 'año'] as const).map((r) => (
           <button
@@ -409,22 +410,6 @@ function StatBox({ label, value }: { label: string; value: string }) {
   );
 }
 
-function filterByRange(transactions: Transaction[], range: Range): Transaction[] {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth(); // 0-based
-  let fromISO: string;
-  if (range === 'mes') {
-    fromISO = new Date(y, m, 1).toISOString().slice(0, 10);
-  } else if (range === 'trimestre') {
-    const qStartMonth = m - (m % 3);
-    fromISO = new Date(y, qStartMonth, 1).toISOString().slice(0, 10);
-  } else {
-    fromISO = new Date(y, 0, 1).toISOString().slice(0, 10);
-  }
-  return transactions.filter((t) => t.date >= fromISO);
-}
-
 function calculateIncomeByCategory(transactions: Transaction[]): Array<{ categoryId: string | null; amount: number; count: number }> {
   const map = new Map<string | null, { categoryId: string | null; amount: number; count: number }>();
   for (const tx of transactions) {
@@ -440,3 +425,15 @@ function calculateIncomeByCategory(transactions: Transaction[]): Array<{ categor
 const tooltipStyle: React.CSSProperties = {
   background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 8, fontSize: 'var(--text-sm)',
 };
+
+const MONTH_LONG = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+/** Texto del periodo que se está mirando, para que el usuario vea que el selector sí cambia algo. */
+function describeRange(range: Range, today: string): string {
+  const { from, to } = rangeBounds(range, today);
+  const [y, m] = from.split('-').map(Number) as [number, number];
+  if (range === 'mes') return `${MONTH_LONG[m - 1]} ${y}`;
+  if (range === 'año') return `${y} completo`;
+  const mTo = Number(to.split('-')[1]);
+  return `${MONTH_LONG[m - 1]} – ${MONTH_LONG[mTo - 1]} ${y}`;
+}

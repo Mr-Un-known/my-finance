@@ -49,25 +49,28 @@ export function TabBar() {
           display: 'grid',
           gridTemplateColumns: 'repeat(5, 1fr)',
           alignItems: 'center',
-          background: 'var(--material-thin)',
+          // Opaca a proposito: con --material-thin (blanco 72%) el
+          // contenido se leia a traves de la barra y no se sabia donde
+          // empezaba. El blur solo se nota si hay soporte, pero el color
+          // de abajo ya es solido.
+          background: 'var(--surface)',
           backdropFilter: 'saturate(180%) blur(20px)',
           WebkitBackdropFilter: 'saturate(180%) blur(20px)',
+          boxShadow: '0 -1px 12px rgb(0 0 0 / 0.06)',
           borderTop: '1px solid var(--line)',
           paddingBottom: 'var(--safe-bottom)',
           zIndex: 40,
         }}
       >
-        {TABS.map((tab, i) => (
+        <AddButton
+          hidden={fabHidden}
+          onClick={() => {
+            haptic('light');
+            setLongPressOpen(true);
+          }}
+        />
+        {TABS.map((tab) => (
           <div key={tab.to} style={{ display: 'contents' }}>
-            {i === 2 && (
-              <AddButton
-                hidden={fabHidden}
-                onClick={() => {
-                  haptic('light');
-                  setLongPressOpen(true);
-                }}
-              />
-            )}
             <NavLink
               to={tab.to}
               end={tab.to === '/'}
@@ -121,7 +124,9 @@ export function TabBar() {
 /**
  * El "+" no es una pestaña: es una acción. Flota SOBRE el tab bar, no
  * dentro — con bottom pequeño se comía la pestaña central (Calendario).
- * Long-press abre menú rápido con Gasto/Ingreso/Recurrente.
+ * Va a la DERECHA, no centrado: centrado se le sentaba encima de la fila
+ * del medio de la lista y tapaba concepto y monto.
+ * Tap abre menú rápido con Gasto/Ingreso/Recurrente.
  */
 function AddButton({ onClick, hidden }: { onClick: () => void; hidden?: boolean }) {
   const [pressed, setPressed] = useState(false);
@@ -134,9 +139,9 @@ function AddButton({ onClick, hidden }: { onClick: () => void; hidden?: boolean 
       onPointerLeave={() => setPressed(false)}
       style={{
         position: 'absolute',
-        left: '50%',
-        bottom: 'calc(100% + 12px)',
-        transform: `translateX(-50%) scale(${hidden ? 0 : pressed ? 0.94 : 1})`,
+        right: 16,
+        bottom: 'calc(100% + 14px)',
+        transform: `scale(${hidden ? 0 : pressed ? 0.94 : 1})`,
         opacity: hidden ? 0 : 1,
         pointerEvents: hidden ? 'none' : 'auto',
         width: 56,

@@ -7,7 +7,7 @@ npm run test        # corre todo una vez
 npm run test:watch  # modo interactivo
 ```
 
-104 tests, todos sobre `src/domain/` y la lógica de agrupación de
+123 tests, todos sobre `src/domain/` y la lógica de agrupación de
 `src/features/*/` — funciones puras, sin necesidad de un navegador ni
 una base de datos real. Cubren, entre otras cosas:
 

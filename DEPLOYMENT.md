@@ -29,7 +29,7 @@ Abre `http://localhost:5173/my-finance/`. Deberías ver el dashboard vacío.
 Toca "Cargar datos de ejemplo" para probar que todo funciona.
 
 ```bash
-npm run test        # 104 tests, todos deben pasar
+npm run test        # 123 tests, todos deben pasar
 npm run typecheck   # sin errores
 npm run build        # genera dist/
 ```

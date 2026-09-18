@@ -13,5 +13,5 @@ test('crear un ingreso', async ({ page }) => {
 
   await expect(dialog).toBeHidden();
   await expect(page.getByText('Pago freelance')).toBeVisible();
-  await expect(page.getByText('+$ 1.200.000')).toBeVisible();
+  await expect(page.getByText('+ $ 1.200.000').first()).toBeVisible();
 });

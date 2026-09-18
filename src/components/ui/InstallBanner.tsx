@@ -33,14 +33,15 @@ export function InstallBanner() {
     <div
       role="note"
       style={{
-        margin: '0 var(--gap-l) var(--gap-l)', padding: '12px 14px', borderRadius: 'var(--radius-m)',
-        background: 'var(--q10-soft)', border: '1px solid var(--q10)', display: 'flex', gap: 10, alignItems: 'flex-start',
+        // Compacto: ocupaba un tercio de la pantalla en iPhone.
+        margin: '0 var(--gap-l) var(--gap-m)', padding: '8px 12px', borderRadius: 'var(--radius-s)',
+        maxWidth: 560, marginInline: 'auto',
+        background: 'var(--q10-soft)', border: '1px solid var(--q10)', display: 'flex', gap: 8, alignItems: 'center',
       }}
     >
-      <span aria-hidden style={{ fontSize: 18 }}>📲</span>
-      <p style={{ margin: 0, fontSize: 13, color: 'var(--text)', flex: 1 }}>
-        Instala My Finance en tu iPhone para recibir recordatorios: toca{' '}
-        <strong>Compartir</strong> y luego <strong>&quot;Agregar a inicio&quot;</strong>.
+      <span aria-hidden style={{ fontSize: 16 }}>📲</span>
+      <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--text)', flex: 1, lineHeight: 1.35 }}>
+        Instálala: <strong>Compartir</strong> → <strong>Agregar a inicio</strong>.
       </p>
       <button
         type="button" onClick={dismiss} aria-label="Cerrar"

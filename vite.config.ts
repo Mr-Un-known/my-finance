@@ -25,8 +25,8 @@ export default defineConfig({
         display: 'standalone',
         // theme_color/background_color en claro; el modo oscuro real lo
         // define la app en runtime via prefers-color-scheme (ver index.html)
-        background_color: '#f6f7f9',
-        theme_color: '#3b5bdb',
+        background_color: '#F2F2F7',
+        theme_color: '#007AFF', // SystemBlue, igual que --q10 en tokens.css
         orientation: 'portrait',
         icons: [
           { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

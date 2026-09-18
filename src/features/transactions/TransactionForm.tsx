@@ -24,9 +24,19 @@ export interface TransactionFormValue {
   markPaidNow: boolean;
 }
 
+/** Valores con los que se puede abrir el form. Los manda el TabBar o una URL
+ *  (`?nuevo=1&tipo=ingreso&monto=...`), que es como entra el Atajo de iOS. */
+export interface Prefill {
+  type: TransactionType;
+  concept?: string;
+  amountText?: string;
+  date?: string;
+  markPaidNow?: boolean;
+}
+
 function initialValue(
   existing: Transaction | null,
-  initialType: TransactionType,
+  prefill: Prefill | undefined,
   defaultPaymentMethodId: string | null,
 ): TransactionFormValue {
   if (existing) {
@@ -40,31 +50,35 @@ function initialValue(
       markPaidNow: existing.status === 'paid',
     };
   }
+  const date = prefill?.date ?? todayISO();
   return {
-    type: initialType,
-    concept: '',
-    amountText: '',
-    date: todayISO(),
+    type: prefill?.type ?? 'expense',
+    concept: prefill?.concept ?? '',
+    amountText: prefill?.amountText ?? '',
+    date,
     categoryId: null,
     paymentMethodId: defaultPaymentMethodId,
-    markPaidNow: false,
+    // Un movimiento con fecha de hoy o anterior ya ocurrió: se marca hecho.
+    // Antes todo entraba como 'pendiente', lo que inflaba "por pagar" y
+    // dejaba los ingresos fuera de lo recibido.
+    markPaidNow: prefill?.markPaidNow ?? date <= todayISO(),
   };
 }
 
 /**
  * Form rediseñado (Fase 3):
- *   - Amount grande y prominente arriba (44pt SF Pro Rounded).
+ *   - El monto grande ES el input (un solo campo, no display + caja).
  *   - Chips de conceptos recientes (top 5): tap → autofill TODO.
  *   - Al escribir concepto, inferencia autónoma de categoría + método
  *     desde el historial (debounce 200ms).
- *   - Tipo se determina por prop `initialType` o el existente (no toggle).
+ *   - Tipo y valores iniciales vienen de `prefill` (o del existente).
  */
 export function TransactionForm({
-  existing, initialType, categories, paymentMethods, defaultPaymentMethodId,
+  existing, prefill, categories, paymentMethods, defaultPaymentMethodId,
   onSave, onDelete, onDuplicate, onCancel,
 }: {
   existing: Transaction | null;
-  initialType?: TransactionType;
+  prefill?: Prefill;
   categories: Category[];
   paymentMethods: PaymentMethod[];
   defaultPaymentMethodId: string | null;
@@ -74,7 +88,7 @@ export function TransactionForm({
   onCancel: () => void;
 }) {
   const [value, setValue] = useState<TransactionFormValue>(() =>
-    initialValue(existing, initialType ?? 'expense', defaultPaymentMethodId),
+    initialValue(existing, prefill, defaultPaymentMethodId),
   );
   const [touched, setTouched] = useState(false);
   const [inferredKey, setInferredKey] = useState<string | null>(null);
@@ -224,34 +238,27 @@ export function TransactionForm({
           </span>
         </div>
 
-        {/* Amount huge, live-formatted */}
-        <div style={{ textAlign: 'center', margin: '10px 0 6px' }}>
-          <div
-            className="figures"
-            style={{
-              fontSize: 'var(--text-3xl)', fontWeight: 700,
-              letterSpacing: '-0.022em', lineHeight: 1,
-              color: isIncome ? 'var(--positive)' : (amount && amount > 0 ? 'var(--text)' : 'var(--text-faint)'),
-              transition: 'color var(--dur-fast)',
-            }}
-          >
-            {isIncome && amount && amount > 0 ? '+ ' : ''}{amount && amount > 0 ? formatMoney(amount) : formatMoney(0)}
-          </div>
-        </div>
+        {/* El número grande ES el campo. Antes había un display decorativo
+            arriba y un input chico debajo: dos cosas mostrando lo mismo. */}
         <input
-          value={value.amountText}
-          onChange={(e) => setValue((v) => ({ ...v, amountText: e.target.value.replace(/[^0-9]/g, '') }))}
+          value={value.amountText ? formatMoney(Number(value.amountText)) : ''}
+          onChange={(e) => setValue((v) => ({ ...v, amountText: e.target.value.replace(/[^0-9]/g, '').slice(0, 12) }))}
           placeholder="$ 0"
           inputMode="numeric"
+          enterKeyHint="next"
           autoFocus={!existing}
           aria-label="Valor"
+          className="figures"
           style={{
-            width: '100%', minHeight: 'var(--tap)', padding: '0 12px', marginBottom: 14,
-            borderRadius: 'var(--radius-s)', border: '1px solid var(--line-strong)',
-            background: 'var(--surface)', color: 'var(--text)', fontSize: 16,
-            textAlign: 'center',
+            width: '100%', border: 'none', background: 'none', outline: 'none',
+            textAlign: 'center', margin: '12px 0 4px', padding: 0,
+            fontSize: 'var(--text-3xl)', fontWeight: 700, letterSpacing: '-0.022em', lineHeight: 1.1,
+            color: isIncome ? 'var(--positive)' : (amount && amount > 0 ? 'var(--text)' : 'var(--text-faint)'),
           }}
         />
+        <p style={{ margin: '0 0 14px', textAlign: 'center', fontSize: 'var(--text-xs)', color: 'var(--text-faint)' }}>
+          {isIncome ? 'Cuánto entra' : 'Cuánto sale'}
+        </p>
         {touched && (amount === null || amount <= 0) && <p style={errorText}>Ingresa un valor válido.</p>}
 
         {/* Chips de recientes — solo cuando NO editás y hay historial */}

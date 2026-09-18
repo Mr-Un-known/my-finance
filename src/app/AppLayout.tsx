@@ -13,7 +13,8 @@ export function AppLayout() {
           style={{
             flex: 1,
             paddingTop: 'calc(var(--safe-top) + var(--gap-l))',
-            paddingBottom: 'calc(var(--safe-bottom) + 92px)',
+            // 61 barra + 14 + 56 FAB + aire: nada queda debajo del tab bar ni del +.
+            paddingBottom: 'calc(var(--safe-bottom) + 148px)',
           }}
         >
           <InstallBanner />

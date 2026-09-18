@@ -3,41 +3,43 @@ import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Screen } from '@/components/ui/Screen';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { MonthNav, monthName } from '@/components/ui/MonthNav';
 import { db } from '@/data/db';
 import { localRepository, DEFAULT_SETTINGS } from '@/data/local/localRepository';
 import { seedDemoTransactions } from '@/data/local/demoData';
 import { formatMoney } from '@/domain/money/format';
 import { calculateMonthBalance } from '@/domain/quincena/balance';
-import { calculateAvailableBalance } from '@/domain/totals/available';
+import { calculateMonthFlow } from '@/domain/totals/available';
 import { quincenaKey } from '@/domain/quincena/quincena';
 import { withResolvedQuincena } from '@/domain/quincena/resolve';
+import { shiftMonth } from '@/domain/dates';
 import { formatShortDate } from '@/lib/formatShortDate';
-import { todayISO } from '@/lib/todayISO';
-import { selectUpcoming, relevantDate } from './upcoming';
+import { todayISO, nowISO } from '@/lib/todayISO';
+import { selectUpcoming, upcomingTotals, relevantDate } from './upcoming';
 import { AnimatedNumber } from './AnimatedNumber';
 import { PorPagarSheet } from './PorPagarSheet';
-import { nowISO } from '@/lib/todayISO';
 import { haptic } from '@/lib/haptic';
 import type { Transaction } from '@/domain/types';
 
-const MONTH_NAMES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-];
 
 export function DashboardScreen() {
   const navigate = useNavigate();
   const [loadingDemo, setLoadingDemo] = useState(false);
   const [porPagarOpen, setPorPagarOpen] = useState(false);
-  const [showDisponibleInfo, setShowDisponibleInfo] = useState(false);
+
+  const today = todayISO();
+  const [todayYear, todayMonth, dayOfMonth] = today.split('-').map(Number) as [number, number, number];
+
+  // Mes visible. Arranca en el actual; las flechas lo mueven. Todo lo de
+  // abajo (flujo, quincenas, proximos) se recalcula sobre ESTE mes.
+  const [cursor, setCursor] = useState({ y: todayYear, m: todayMonth });
+  const { y: year, m: month } = cursor;
+  const isCurrentMonth = year === todayYear && month === todayMonth;
 
   const settings = useLiveQuery(() => localRepository.getSettings(), []) ?? DEFAULT_SETTINGS;
   const transactions = useLiveQuery(() => db.transactions.toArray(), []) ?? [];
   const categories = useLiveQuery(() => localRepository.listCategories(), []) ?? [];
   const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
-
-  const today = todayISO();
-  const [year, month, dayOfMonth] = today.split('-').map(Number) as [number, number, number];
 
   const resolved = useMemo(
     () => withResolvedQuincena(transactions, settings.quincenaStartDays),
@@ -52,25 +54,24 @@ export function DashboardScreen() {
   );
 
   const monthBalance = useMemo(() => calculateMonthBalance(resolved, year, month), [resolved, year, month]);
-  const available = useMemo(() => calculateAvailableBalance(monthTransactions), [monthTransactions]);
+  const flow = useMemo(() => calculateMonthFlow(monthTransactions), [monthTransactions]);
 
   const pendientes = monthTransactions.filter((t) => t.type === 'expense' && t.status === 'pending');
   const programados = monthTransactions.filter((t) => t.type === 'expense' && t.status === 'scheduled');
   const tcComprometido = monthTransactions.filter(
     (t) => t.type === 'expense' && t.status !== 'paid' && t.status !== 'cancelled' && t.cyclePaymentDate,
   );
-
   const porPagarCount = pendientes.length + programados.length + tcComprometido.length;
-  const porPagarTotal = sum(pendientes) + sum(programados) + sum(tcComprometido);
 
-  const upcoming = useMemo(() => selectUpcoming(transactions, 5), [transactions]);
+  // Proximos: la MISMA lista del mes que alimenta el hero, para que
+  // "falta pagar" de arriba y "esperas gastar" de abajo coincidan.
+  const upcoming = useMemo(() => selectUpcoming(monthTransactions, 8), [monthTransactions]);
+  const totals = useMemo(() => upcomingTotals(monthTransactions), [monthTransactions]);
 
-  // Quincena activa según el día actual — tinta el hero.
-  const activeQuincenaIdx = dayOfMonth < settings.quincenaStartDays[1] ? 0 : 1;
-  const heroTintVar = activeQuincenaIdx === 0 ? '--q10-soft' : '--q25-soft';
-  const heroAccentVar = activeQuincenaIdx === 0 ? '--q10' : '--q25';
-
-  const showDisponible = available.libreReal !== monthBalance.sobrante;
+  // Quincena activa: solo tiñe el hero cuando estas mirando el mes actual.
+  const activeQuincenaIdx = !isCurrentMonth ? -1 : dayOfMonth < settings.quincenaStartDays[1] ? 0 : 1;
+  const heroTintVar = activeQuincenaIdx === 1 ? '--q25-soft' : '--q10-soft';
+  const heroAccentVar = activeQuincenaIdx === 1 ? '--q25' : '--q10';
 
   async function handleLoadDemo() {
     setLoadingDemo(true);
@@ -90,9 +91,18 @@ export function DashboardScreen() {
     });
   }
 
+  const nav = (
+    <MonthNav
+      label={`${monthName(month)} ${year}`}
+      onPrev={() => setCursor((c) => shiftMonth(c.y, c.m, -1))}
+      onNext={() => setCursor((c) => shiftMonth(c.y, c.m, 1))}
+      onToday={isCurrentMonth ? undefined : () => setCursor({ y: todayYear, m: todayMonth })}
+    />
+  );
+
   if (transactions.length === 0) {
     return (
-      <Screen title="Inicio" subtitle={`${MONTH_NAMES[month - 1]} ${year}`}>
+      <Screen title="Inicio" subtitle={`${monthName(month)} ${year}`}>
         <EmptyState
           title="Todavía no hay movimientos"
           body="Registra tu primer gasto o ingreso, o carga datos de ejemplo para ver el dashboard funcionando."
@@ -103,8 +113,8 @@ export function DashboardScreen() {
   }
 
   return (
-    <Screen title="Inicio" subtitle={`${MONTH_NAMES[month - 1]} ${year}`}>
-      {/* Hero: Sobrante del mes con tinte de la quincena activa + Disponible ahora como sub-línea. */}
+    <Screen title="Inicio" right={nav}>
+      {/* Hero: como termina el mes si todo se cumple. */}
       <div
         style={{
           background: `color-mix(in srgb, var(${heroTintVar}) 65%, var(--surface))`,
@@ -116,7 +126,7 @@ export function DashboardScreen() {
         }}
       >
         <p style={{ margin: '0 0 6px', fontSize: 'var(--text-sm)', color: `var(${heroAccentVar})`, fontWeight: 700, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
-          Sobrante del mes
+          Te queda este mes
         </p>
         <AnimatedNumber
           value={monthBalance.sobrante}
@@ -131,26 +141,23 @@ export function DashboardScreen() {
             color: monthBalance.sobrante >= 0 ? 'var(--text)' : 'var(--danger)',
           }}
         />
-        {showDisponible && (
-          <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid color-mix(in srgb, var(${heroAccentVar}) 15%, var(--line))`, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 15 }} aria-hidden>💵</span>
-            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', flex: 1 }}>Disponible ahora</span>
-            <span className="figures" style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: available.libreReal >= 0 ? 'var(--text)' : 'var(--danger)' }}>
-              {formatMoney(available.libreReal)}
-            </span>
-            <button
-              type="button"
-              onClick={() => setShowDisponibleInfo(true)}
-              aria-label="¿Qué es Disponible ahora?"
-              style={{
-                width: 24, height: 24, borderRadius: 12, border: '1px solid var(--line-strong)',
-                background: 'var(--surface)', color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-              }}
-            >
-              ?
-            </button>
-          </div>
-        )}
+        <p style={{ margin: '4px 0 0', fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
+          Ingresos menos gastos del mes, contando lo pagado y lo que falta.
+        </p>
+
+        {/* Los cuatro numeros que lo componen. Ninguno puede ser negativo. */}
+        <div
+          style={{
+            display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1,
+            marginTop: 14, borderRadius: 'var(--radius-s)', overflow: 'hidden',
+            background: `color-mix(in srgb, var(${heroAccentVar}) 12%, var(--line))`,
+          }}
+        >
+          <FlowCell label="Ya recibiste" value={flow.recibido} tone="positive" />
+          <FlowCell label="Falta recibir" value={flow.porRecibir} tone="positive-soft" />
+          <FlowCell label="Ya pagaste" value={flow.pagado} tone="plain" />
+          <FlowCell label="Falta pagar" value={flow.porPagar} tone="danger-soft" />
+        </div>
       </div>
 
       {/* Dos quincenas */}
@@ -171,33 +178,23 @@ export function DashboardScreen() {
         />
       </div>
 
-      {/* Chip único "Por pagar" — reemplaza los 3 chips */}
       {porPagarCount > 0 && (
         <button
           type="button"
           onClick={() => setPorPagarOpen(true)}
           style={{
-            width: '100%',
-            background: 'var(--surface)',
-            border: '1px solid var(--line)',
-            borderRadius: 'var(--radius-m)',
-            padding: '14px 16px',
-            marginBottom: 20,
-            cursor: 'pointer',
-            textAlign: 'left',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            color: 'var(--text)',
-            boxShadow: 'var(--shadow-1)',
+            width: '100%', background: 'var(--surface)', border: '1px solid var(--line)',
+            borderRadius: 'var(--radius-m)', padding: '14px 16px', marginBottom: 20,
+            cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center',
+            gap: 12, color: 'var(--text)', boxShadow: 'var(--shadow-1)',
           }}
         >
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', fontWeight: 600, marginBottom: 2 }}>
-              Por pagar
+              Desglose de lo que falta pagar
             </div>
             <div className="figures" style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>
-              {porPagarCount} · {formatMoney(porPagarTotal)}
+              {porPagarCount} · {formatMoney(flow.porPagar)}
             </div>
             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-faint)', marginTop: 2 }}>
               {pendientes.length} pendiente{pendientes.length !== 1 ? 's' : ''} · {programados.length} programado{programados.length !== 1 ? 's' : ''} · {tcComprometido.length} en tarjeta
@@ -207,26 +204,38 @@ export function DashboardScreen() {
         </button>
       )}
 
-      {/* Próximos movimientos (renombrado) — solo gastos, ya filtrado en upcoming.ts */}
-      <h2 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, margin: '0 0 10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-        Próximos movimientos
-      </h2>
+      {/* Proximos movimientos DEL MES visible: ingresos y gastos. */}
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', margin: '0 0 10px' }}>
+        <h2 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, margin: 0, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+          Falta este mes
+        </h2>
+        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-faint)' }}>
+          {monthName(month).toLowerCase()}
+        </span>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+        <ExpectCard label="Esperas recibir" value={totals.income} color="var(--positive)" sign="+" />
+        <ExpectCard label="Esperas gastar" value={totals.expense} color="var(--danger)" sign="−" />
+      </div>
+
       {upcoming.length === 0 ? (
-        <p style={{ color: 'var(--text-faint)', fontSize: 'var(--text-sm)' }}>No tienes pagos pendientes ni programados. 🎉</p>
+        <p style={{ color: 'var(--text-faint)', fontSize: 'var(--text-sm)' }}>
+          Nada pendiente en {monthName(month).toLowerCase()}. 🎉
+        </p>
       ) : (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--radius-m)', overflow: 'hidden' }}>
           {upcoming.map((tx, idx) => {
             const cat = tx.categoryId ? categoryById.get(tx.categoryId) : undefined;
             const { day, month: monthLabel } = formatShortDate(relevantDate(tx));
+            const isIncome = tx.type === 'income';
             const isPaid = tx.status === 'paid';
+            const isLate = isCurrentMonth && relevantDate(tx) < today;
             return (
               <div
                 key={tx.id}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '10px 12px',
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
                   borderBottom: idx < upcoming.length - 1 ? '1px solid var(--line)' : 'none',
                 }}
               >
@@ -234,7 +243,7 @@ export function DashboardScreen() {
                   type="button"
                   onClick={() => toggleTxPaid(tx)}
                   aria-pressed={isPaid}
-                  aria-label={isPaid ? 'Marcar como pendiente' : 'Marcar como pagado'}
+                  aria-label={isIncome ? 'Marcar como recibido' : 'Marcar como pagado'}
                   style={{
                     width: 28, height: 28, minWidth: 28, borderRadius: 14, flex: 'none',
                     border: `1.5px solid ${isPaid ? 'var(--positive)' : 'var(--line-strong)'}`,
@@ -254,18 +263,23 @@ export function DashboardScreen() {
                     padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text)',
                   }}
                 >
-                  <span aria-hidden style={{ fontSize: 22, width: 28, textAlign: 'center', flex: 'none' }}>{cat?.icon ?? '✳️'}</span>
+                  <span aria-hidden style={{ fontSize: 22, width: 28, textAlign: 'center', flex: 'none' }}>
+                    {cat?.icon ?? (isIncome ? '💰' : '✳️')}
+                  </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 'var(--text-md)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {tx.concept}
                     </div>
-                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                      {day} {monthLabel}
+                    <div style={{ fontSize: 'var(--text-xs)', color: isLate ? 'var(--danger)' : 'var(--text-muted)' }}>
+                      {isLate ? 'venció ' : ''}{day} {monthLabel}
                     </div>
                   </div>
                 </button>
-                <span className="figures" style={{ fontWeight: 600, fontSize: 'var(--text-md)' }}>
-                  {formatMoney(tx.amount)}
+                <span
+                  className="figures"
+                  style={{ fontWeight: 600, fontSize: 'var(--text-md)', color: isIncome ? 'var(--positive)' : 'var(--text)' }}
+                >
+                  {isIncome ? '+ ' : ''}{formatMoney(tx.amount)}
                 </span>
               </div>
             );
@@ -289,42 +303,33 @@ export function DashboardScreen() {
           onClose={() => setPorPagarOpen(false)}
         />
       )}
-
-      {showDisponibleInfo && (
-        <div
-          role="dialog"
-          aria-label="Disponible ahora — explicación"
-          onClick={() => setShowDisponibleInfo(false)}
-          style={{ position: 'fixed', inset: 0, background: 'color-mix(in srgb, black 40%, transparent)', display: 'flex', alignItems: 'flex-end', zIndex: 60, animation: 'fadeIn var(--dur-fast) var(--ease-spring-out)' }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{ width: '100%', maxWidth: 560, margin: '0 auto', background: 'var(--surface)', borderRadius: '20px 20px 0 0', padding: '10px 20px calc(var(--safe-bottom) + 20px)', animation: 'slideUp var(--dur-med) var(--ease-spring-out)' }}
-          >
-            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--line-strong)', margin: '4px auto 16px' }} />
-            <h2 style={{ margin: '0 0 10px', fontSize: 'var(--text-lg)', fontWeight: 700 }}>Disponible ahora</h2>
-            <p style={{ margin: '0 0 10px', color: 'var(--text-muted)', fontSize: 'var(--text-base)', lineHeight: 'var(--lh-normal)' }}>
-              Es lo que ya tenés (ingresos pagados menos gastos pagados), menos lo comprometido (pendientes + programados).
-            </p>
-            <p style={{ margin: '0 0 16px', color: 'var(--text-muted)', fontSize: 'var(--text-base)', lineHeight: 'var(--lh-normal)' }}>
-              Puede ser negativo si aún no llegó el sueldo pero pagaste gastos con ahorro. En cambio, el <strong>Sobrante del mes</strong> (arriba) proyecta lo que quedará al final del mes contando TODO, pagado o no.
-            </p>
-            <button
-              type="button"
-              onClick={() => setShowDisponibleInfo(false)}
-              style={{ width: '100%', minHeight: 44, borderRadius: 'var(--radius-s)', border: 'none', background: 'var(--text)', color: 'var(--surface)', fontWeight: 700, fontSize: 'var(--text-base)', cursor: 'pointer' }}
-            >
-              Entendido
-            </button>
-          </div>
-        </div>
-      )}
     </Screen>
   );
 }
 
-function sum(txs: { amount: number }[]): number {
-  return txs.reduce((acc, t) => acc + t.amount, 0);
+function FlowCell({ label, value, tone }: { label: string; value: number; tone: 'positive' | 'positive-soft' | 'plain' | 'danger-soft' }) {
+  const color =
+    tone === 'positive' ? 'var(--positive)'
+    : tone === 'positive-soft' ? 'color-mix(in srgb, var(--positive) 70%, var(--text-muted))'
+    : tone === 'danger-soft' ? 'color-mix(in srgb, var(--danger) 70%, var(--text-muted))'
+    : 'var(--text)';
+  return (
+    <div style={{ background: 'var(--surface)', padding: '10px 12px' }}>
+      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: 2 }}>{label}</div>
+      <div className="figures" style={{ fontSize: 'var(--text-md)', fontWeight: 700, color }}>{formatMoney(value)}</div>
+    </div>
+  );
+}
+
+function ExpectCard({ label, value, color, sign }: { label: string; value: number; color: string; sign: string }) {
+  return (
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--radius-m)', padding: '12px 14px' }}>
+      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: 3 }}>{label}</div>
+      <div className="figures" style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: value > 0 ? color : 'var(--text-faint)' }}>
+        {value > 0 ? `${sign} ` : ''}{formatMoney(value)}
+      </div>
+    </div>
+  );
 }
 
 function QuincenaCard({ day, restante, colorVar, softVar, isActive }: {
