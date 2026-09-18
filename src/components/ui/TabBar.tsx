@@ -1,4 +1,6 @@
+import { useRef, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { haptic } from '@/lib/haptic';
 
 const TABS = [
   { to: '/', label: 'Inicio', icon: 'M3 10.5 12 3l9 7.5V21H3z' },
@@ -10,88 +12,264 @@ const TABS = [
 
 export function TabBar() {
   const navigate = useNavigate();
+  const [longPressOpen, setLongPressOpen] = useState(false);
 
   return (
-    <nav
-      aria-label="Navegación principal"
-      style={{
-        position: 'fixed',
-        insetInline: 0,
-        bottom: 0,
-        display: 'grid',
-        gridTemplateColumns: 'repeat(5, 1fr)',
-        alignItems: 'center',
-        background: 'color-mix(in srgb, var(--surface) 88%, transparent)',
-        backdropFilter: 'saturate(180%) blur(20px)',
-        borderTop: '1px solid var(--line)',
-        paddingBottom: 'var(--safe-bottom)',
-      }}
-    >
-      {TABS.map((tab, i) => (
-        <div key={tab.to} style={{ display: 'contents' }}>
-          {i === 2 && <AddButton onClick={() => navigate('/movimientos?nuevo=1')} />}
-          <NavLink
-            to={tab.to}
-            end={tab.to === '/'}
-            style={({ isActive }) => ({
-              minHeight: 'var(--tap)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 3,
-              padding: '8px 0 10px',
-              textDecoration: 'none',
-              color: isActive ? 'var(--text)' : 'var(--text-faint)',
-              fontSize: 10,
-              fontWeight: isActive ? 600 : 500,
-            })}
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d={tab.icon}
-                stroke="currentColor"
-                strokeWidth="1.7"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+    <>
+      <nav
+        aria-label="Navegación principal"
+        style={{
+          position: 'fixed',
+          insetInline: 0,
+          bottom: 0,
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          alignItems: 'center',
+          background: 'var(--material-thin)',
+          backdropFilter: 'saturate(180%) blur(20px)',
+          WebkitBackdropFilter: 'saturate(180%) blur(20px)',
+          borderTop: '1px solid var(--line)',
+          paddingBottom: 'var(--safe-bottom)',
+          zIndex: 40,
+        }}
+      >
+        {TABS.map((tab, i) => (
+          <div key={tab.to} style={{ display: 'contents' }}>
+            {i === 2 && (
+              <AddButton
+                onClick={() => {
+                  haptic('light');
+                  navigate('/movimientos?nuevo=1');
+                }}
+                onLongPress={() => {
+                  haptic('medium');
+                  setLongPressOpen(true);
+                }}
               />
-            </svg>
-            {tab.label}
-          </NavLink>
-        </div>
-      ))}
-    </nav>
+            )}
+            <NavLink
+              to={tab.to}
+              end={tab.to === '/'}
+              onClick={() => {
+                if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              style={({ isActive }) => ({
+                minHeight: 'var(--tap)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 3,
+                padding: '8px 0 10px',
+                textDecoration: 'none',
+                color: isActive ? 'var(--q10)' : 'var(--text-faint)',
+                fontSize: 10,
+                fontWeight: isActive ? 600 : 500,
+                transition: 'color var(--dur-fast) var(--ease-spring-out)',
+              })}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d={tab.icon}
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              {tab.label}
+            </NavLink>
+          </div>
+        ))}
+      </nav>
+      {longPressOpen && (
+        <QuickActionSheet
+          onClose={() => setLongPressOpen(false)}
+          onSelect={(action) => {
+            setLongPressOpen(false);
+            if (action === 'gasto') navigate('/movimientos?nuevo=1');
+            else if (action === 'ingreso') navigate('/movimientos?nuevo=1&tipo=ingreso');
+            else if (action === 'recurrente') navigate('/ajustes/recurrentes?nuevo=1');
+          }}
+        />
+      )}
+    </>
   );
 }
 
 /**
  * El "+" no es una pestaña: es una acción. Flota SOBRE el tab bar, no
  * dentro — con bottom pequeño se comía la pestaña central (Calendario).
+ * Long-press abre menú rápido con Gasto/Ingreso/Recurrente.
  */
-function AddButton({ onClick }: { onClick: () => void }) {
+function AddButton({ onClick, onLongPress }: { onClick: () => void; onLongPress: () => void }) {
+  const timerRef = useRef<number | null>(null);
+  const firedLongRef = useRef(false);
+  const [pressed, setPressed] = useState(false);
+
+  function start() {
+    firedLongRef.current = false;
+    setPressed(true);
+    timerRef.current = window.setTimeout(() => {
+      firedLongRef.current = true;
+      onLongPress();
+    }, 500);
+  }
+
+  function cancel() {
+    setPressed(false);
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }
+
+  function end() {
+    cancel();
+    if (!firedLongRef.current) onClick();
+  }
+
   return (
     <button
       type="button"
-      onClick={onClick}
       aria-label="Agregar movimiento"
+      onPointerDown={start}
+      onPointerUp={end}
+      onPointerLeave={cancel}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        if (timerRef.current) clearTimeout(timerRef.current);
+        onLongPress();
+      }}
       style={{
         position: 'absolute',
         left: '50%',
         bottom: 'calc(100% + 12px)',
-        transform: 'translateX(-50%)',
+        transform: `translateX(-50%) scale(${pressed ? 0.94 : 1})`,
         width: 56,
         height: 56,
         borderRadius: 28,
         border: 'none',
-        background: 'var(--text)',
-        color: 'var(--surface)',
-        fontSize: 26,
+        background: 'var(--q10)',
+        color: '#fff',
+        fontSize: 28,
+        fontWeight: 400,
         lineHeight: 1,
         cursor: 'pointer',
-        boxShadow: '0 6px 20px rgb(0 0 0 / 0.22)',
+        boxShadow: 'var(--shadow-3)',
+        transition: 'transform var(--dur-fast) var(--ease-spring-out)',
+        touchAction: 'none',
       }}
     >
       +
+    </button>
+  );
+}
+
+function QuickActionSheet({
+  onClose,
+  onSelect,
+}: {
+  onClose: () => void;
+  onSelect: (action: 'gasto' | 'ingreso' | 'recurrente') => void;
+}) {
+  return (
+    <div
+      role="dialog"
+      aria-label="Acción rápida"
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'color-mix(in srgb, black 40%, transparent)',
+        display: 'flex',
+        alignItems: 'flex-end',
+        zIndex: 60,
+        animation: 'fadeIn var(--dur-fast) var(--ease-spring-out)',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%',
+          maxWidth: 560,
+          margin: '0 auto',
+          background: 'var(--surface)',
+          borderRadius: '20px 20px 0 0',
+          padding: '10px 16px calc(var(--safe-bottom) + 16px)',
+          animation: 'slideUp var(--dur-med) var(--ease-spring-out)',
+        }}
+      >
+        <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--line-strong)', margin: '4px auto 12px' }} />
+        <ActionRow
+          emoji="💸"
+          label="Nuevo gasto"
+          sub="Rápido, con el método por defecto"
+          onClick={() => onSelect('gasto')}
+        />
+        <ActionRow
+          emoji="💰"
+          label="Nuevo ingreso"
+          sub="Sueldo, freelance, ventas…"
+          onClick={() => onSelect('ingreso')}
+        />
+        <ActionRow
+          emoji="🔁"
+          label="Nuevo recurrente"
+          sub="Renta, servicios, suscripciones…"
+          onClick={() => onSelect('recurrente')}
+        />
+        <button
+          type="button"
+          onClick={onClose}
+          style={{
+            width: '100%',
+            marginTop: 8,
+            minHeight: 48,
+            borderRadius: 'var(--radius-s)',
+            border: 'none',
+            background: 'var(--surface-sunken)',
+            color: 'var(--text)',
+            fontWeight: 600,
+            fontSize: 15,
+            cursor: 'pointer',
+          }}
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ActionRow({ emoji, label, sub, onClick }: { emoji: string; label: string; sub: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        haptic('light');
+        onClick();
+      }}
+      style={{
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '12px 8px',
+        background: 'none',
+        border: 'none',
+        borderBottom: '1px solid var(--line)',
+        cursor: 'pointer',
+        textAlign: 'left',
+        color: 'var(--text)',
+      }}
+    >
+      <span style={{ fontSize: 26 }}>{emoji}</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 'var(--text-md)', fontWeight: 600 }}>{label}</div>
+        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{sub}</div>
+      </div>
+      <span style={{ color: 'var(--text-faint)', fontSize: 20 }}>›</span>
     </button>
   );
 }

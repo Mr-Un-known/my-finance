@@ -7,5 +7,5 @@ test('ver el dashboard con datos de ejemplo', async ({ page }) => {
   await page.getByRole('button', { name: 'Cargar datos de ejemplo' }).click();
 
   await expect(page.getByText('Sobrante del mes')).toBeVisible();
-  await expect(page.getByText('Próximos pagos')).toBeVisible();
+  await expect(page.getByText('Próximos movimientos')).toBeVisible();
 });

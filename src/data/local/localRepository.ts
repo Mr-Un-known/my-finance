@@ -3,6 +3,7 @@ import type { Repository } from '../repository';
 import type { Settings } from '@/domain/types';
 import { importBackup } from '../backup/exportImport';
 import { BackupSchema } from '../backup/schema';
+import { normalize } from '@/domain/inference/conceptInference';
 
 export const DEFAULT_SETTINGS: Settings = {
   id: 'singleton',
@@ -34,7 +35,27 @@ export const localRepository: Repository = {
     range
       ? db.transactions.where('date').between(range.from, range.to, true, true).toArray()
       : db.transactions.toArray(),
-  saveTransaction: async (tx) => { await db.transactions.put(tx); },
+  saveTransaction: async (tx) => {
+    await db.transactions.put(tx);
+    // Actualiza el índice de conceptos para el smart-fill del form.
+    // Solo entradas manuales del user (no las materializadas por reglas
+    // recurrentes) alimentan el índice: si el user vuelve a ese concepto,
+    // quiere recuperar la última categoría/método que usó.
+    if (!tx.recurringRuleId && tx.concept.trim()) {
+      const key = normalize(tx.concept);
+      if (key) {
+        const prev = await db.conceptIndex.get(key);
+        await db.conceptIndex.put({
+          id: key,
+          displayName: tx.concept.trim(),
+          categoryId: tx.categoryId,
+          paymentMethodId: tx.paymentMethodId,
+          count: (prev?.count ?? 0) + 1,
+          lastUsedAt: tx.updatedAt,
+        });
+      }
+    }
+  },
   deleteTransaction: async (id) => { await db.transactions.delete(id); },
 
   listRecurringRules: () => db.recurringRules.toArray(),

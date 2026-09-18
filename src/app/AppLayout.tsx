@@ -13,7 +13,7 @@ export function AppLayout() {
           style={{
             flex: 1,
             paddingTop: 'calc(var(--safe-top) + var(--gap-l))',
-            paddingBottom: 'calc(var(--safe-bottom) + 88px)',
+            paddingBottom: 'calc(var(--safe-bottom) + 92px)',
           }}
         >
           <InstallBanner />

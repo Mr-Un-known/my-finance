@@ -17,6 +17,7 @@ export function TransactionsScreen() {
   const [params, setParams] = useSearchParams();
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [initialType, setInitialType] = useState<'income' | 'expense' | undefined>();
   const [query, setQuery] = useState('');
   const [loadingDemo, setLoadingDemo] = useState(false);
 
@@ -28,9 +29,11 @@ export function TransactionsScreen() {
   useEffect(() => {
     if (params.get('nuevo') === '1') {
       setEditing(null);
+      setInitialType(params.get('tipo') === 'ingreso' ? 'income' : 'expense');
       setFormOpen(true);
       const next = new URLSearchParams(params);
       next.delete('nuevo');
+      next.delete('tipo');
       setParams(next, { replace: true });
     }
   }, [params, setParams]);
@@ -160,13 +163,14 @@ export function TransactionsScreen() {
       {formOpen && (
         <TransactionForm
           existing={editing}
+          initialType={editing ? undefined : initialType}
           categories={categories}
           paymentMethods={paymentMethods}
           defaultPaymentMethodId={settings.defaultPaymentMethodId ?? paymentMethods.find((m) => m.isDefault)?.id ?? null}
           onSave={handleSave}
           onDelete={editing ? handleDelete : undefined}
           onDuplicate={editing ? handleDuplicate : undefined}
-          onCancel={() => { setFormOpen(false); setEditing(null); }}
+          onCancel={() => { setFormOpen(false); setEditing(null); setInitialType(undefined); }}
         />
       )}
     </Screen>

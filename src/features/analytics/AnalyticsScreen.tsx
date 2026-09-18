@@ -11,13 +11,16 @@ import { formatCompact, formatMoney } from '@/domain/money/format';
 import { calculateDebitVsCredit, calculateFixedVsVariable, monthlySeries } from '@/domain/analytics/series';
 import { calculateSpendByCategory } from '@/domain/totals/byCategory';
 import { toMonthlyPoints, toQuarterlyPoints, toYearlyPoints, type PeriodPoint } from './periodAggregate';
+import type { Transaction, Category } from '@/domain/types';
 
 type Range = 'mes' | 'trimestre' | 'año';
 
-const CHART_COLORS = ['#5B6FE0', '#E0A23B', '#3BA3E0', '#C15BD1', '#3BC1A3', '#E05B5B', '#8A5CF6', '#D18A5B'];
+const CHART_COLORS = ['#007AFF', '#FF9500', '#34C759', '#AF52DE', '#FF3B30', '#FFCC00', '#5AC8FA', '#FF2D55'];
 
 export function AnalyticsScreen() {
   const [range, setRange] = useState<Range>('mes');
+  const [detailCategoryId, setDetailCategoryId] = useState<string | null | undefined>(undefined);
+
   const transactions = useLiveQuery(() => db.transactions.toArray(), []) ?? [];
   const categories = useLiveQuery(() => localRepository.listCategories(), []) ?? [];
   const paymentMethods = useLiveQuery(() => localRepository.listPaymentMethods(), []) ?? [];
@@ -35,7 +38,17 @@ export function AnalyticsScreen() {
     return toYearlyPoints(monthly);
   }, [monthly, range]);
 
-  const byCategory = useMemo(() => calculateSpendByCategory(transactions).slice(0, 6), [transactions]);
+  // Gastos por categoría (top N + "Otros")
+  const spendByCategory = useMemo(() => calculateSpendByCategory(transactions), [transactions]);
+  const spendTop = spendByCategory.slice(0, 7);
+  const spendOtherAmount = spendByCategory.slice(7).reduce((a, c) => a + c.amount, 0);
+  const spendTotal = spendByCategory.reduce((a, c) => a + c.amount, 0);
+
+  // Ingresos por categoría (nuevo — hasta ahora sólo gastos)
+  const incomeByCategory = useMemo(() => calculateIncomeByCategory(transactions), [transactions]);
+  const incomeTop = incomeByCategory.slice(0, 5);
+  const incomeTotal = incomeByCategory.reduce((a, c) => a + c.amount, 0);
+
   const fixedVsVariable = useMemo(() => calculateFixedVsVariable(transactions), [transactions]);
   const debitVsCredit = useMemo(() => calculateDebitVsCredit(transactions, creditMethodIds), [transactions, creditMethodIds]);
 
@@ -47,9 +60,24 @@ export function AnalyticsScreen() {
     );
   }
 
-  const totalSpend = byCategory.reduce((acc, c) => acc + c.amount, 0);
   const totalFV = fixedVsVariable.fixed + fixedVsVariable.variable;
   const totalDC = debitVsCredit.debit + debitVsCredit.credit;
+
+  // Pie data (todas las categorías + "Otros")
+  const pieData = [
+    ...spendTop.map((c) => {
+      const cat = c.categoryId ? categoryById.get(c.categoryId) : null;
+      return {
+        id: c.categoryId ?? 'none',
+        name: cat?.name ?? 'Sin categoría',
+        icon: cat?.icon ?? '✳️',
+        color: cat?.color ?? 'var(--text-faint)',
+        amount: c.amount,
+        count: c.count,
+      };
+    }),
+    ...(spendOtherAmount > 0 ? [{ id: '__other__', name: 'Otros', icon: '⋯', color: 'var(--text-faint)', amount: spendOtherAmount, count: spendByCategory.slice(7).reduce((a, c) => a + c.count, 0) }] : []),
+  ];
 
   return (
     <Screen title="Análisis" subtitle="Mes, trimestre y año">
@@ -59,8 +87,9 @@ export function AnalyticsScreen() {
             key={r} type="button" onClick={() => setRange(r)} aria-pressed={range === r}
             style={{
               flex: 1, minHeight: 'var(--tap)', borderRadius: 'var(--radius-s)', border: '1px solid var(--line-strong)',
-              background: range === r ? 'var(--text)' : 'var(--surface)', color: range === r ? 'var(--surface)' : 'var(--text)',
+              background: range === r ? 'var(--q10)' : 'var(--surface)', color: range === r ? '#fff' : 'var(--text)',
               fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize',
+              transition: 'all var(--dur-fast) var(--ease-spring-out)',
             }}
           >
             {r}
@@ -68,7 +97,107 @@ export function AnalyticsScreen() {
         ))}
       </div>
 
-      <ChartCard title="Ingresos vs. gastos">
+      {/* Card: barras stacked por categoría — reemplaza el ChartCard viejo */}
+      <ChartCard title="Balance por categoría">
+        <StackedBar
+          label="Ingresos"
+          total={incomeTotal}
+          segments={incomeTop.map((c, i) => {
+            const cat = c.categoryId ? categoryById.get(c.categoryId) : null;
+            return {
+              id: c.categoryId ?? `income-${i}`,
+              name: cat?.name ?? 'Sin categoría',
+              color: (cat?.color ?? CHART_COLORS[i % CHART_COLORS.length]) as string,
+              amount: c.amount,
+            };
+          })}
+          amountColor="var(--positive)"
+          prefix="+ "
+        />
+        <div style={{ height: 12 }} />
+        <StackedBar
+          label="Gastos"
+          total={spendTotal}
+          segments={spendTop.map((c, i) => {
+            const cat = c.categoryId ? categoryById.get(c.categoryId) : null;
+            return {
+              id: c.categoryId ?? `spend-${i}`,
+              name: cat?.name ?? 'Sin categoría',
+              color: (cat?.color ?? CHART_COLORS[i % CHART_COLORS.length]) as string,
+              amount: c.amount,
+            };
+          })}
+          amountColor="var(--text)"
+        />
+        <div style={{ height: 12 }} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 10, borderTop: '1px solid var(--line)' }}>
+          <span style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)', fontWeight: 600 }}>Balance</span>
+          <span className="figures" style={{ fontWeight: 700, color: incomeTotal - spendTotal >= 0 ? 'var(--positive)' : 'var(--danger)' }}>
+            {incomeTotal - spendTotal >= 0 ? '+ ' : ''}{formatMoney(incomeTotal - spendTotal)}
+          </span>
+        </div>
+      </ChartCard>
+
+      {/* Card: pie clickable */}
+      <ChartCard title="Distribución de gastos">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <ResponsiveContainer width={140} height={140}>
+            <PieChart>
+              <Pie
+                data={pieData}
+                dataKey="amount"
+                nameKey="id"
+                innerRadius={40}
+                outerRadius={65}
+                paddingAngle={2}
+                onClick={(entry) => {
+                  const id = (entry as unknown as { id?: string })?.id;
+                  if (typeof id === 'string' && id !== '__other__') {
+                    setDetailCategoryId(id === 'none' ? null : id);
+                  }
+                }}
+                style={{ cursor: 'pointer' }}
+              >
+                {pieData.map((entry) => (
+                  <Cell key={entry.id} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip formatter={(v) => formatMoney(typeof v === 'number' ? v : Number(v ?? 0))} contentStyle={tooltipStyle} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {pieData.map((entry) => {
+              const pct = spendTotal > 0 ? Math.round((entry.amount / spendTotal) * 100) : 0;
+              const disabled = entry.id === '__other__';
+              return (
+                <button
+                  key={entry.id}
+                  type="button"
+                  onClick={() => !disabled && setDetailCategoryId(entry.id === 'none' ? null : entry.id)}
+                  disabled={disabled}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '4px 6px', marginBottom: 2, border: 'none', background: 'transparent',
+                    cursor: disabled ? 'default' : 'pointer', textAlign: 'left', color: 'var(--text)',
+                    borderRadius: 6, fontSize: 'var(--text-sm)',
+                  }}
+                >
+                  <span aria-hidden style={{ width: 10, height: 10, borderRadius: 5, background: entry.color, flex: 'none' }} />
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {entry.icon} {entry.name}
+                  </span>
+                  <span className="figures" style={{ color: 'var(--text-muted)', fontWeight: 600 }}>{pct}%</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <p style={{ margin: '10px 4px 0', fontSize: 'var(--text-xs)', color: 'var(--text-faint)' }}>
+          Tocá una categoría para ver el detalle.
+        </p>
+      </ChartCard>
+
+      <ChartCard title="Ingresos vs. gastos (histórico)">
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={points} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
@@ -79,33 +208,6 @@ export function AnalyticsScreen() {
             <Bar dataKey="expense" name="Gastos" fill="var(--danger)" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
-      </ChartCard>
-
-      <ChartCard title="Gastos por categoría">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <ResponsiveContainer width={140} height={140}>
-            <PieChart>
-              <Pie data={byCategory} dataKey="amount" nameKey="categoryId" innerRadius={40} outerRadius={65} paddingAngle={2}>
-                {byCategory.map((entry, i) => (
-                  <Cell key={entry.categoryId ?? 'none'} fill={categoryById.get(entry.categoryId ?? '')?.color ?? CHART_COLORS[i % CHART_COLORS.length]} />
-                ))}
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {byCategory.map((c) => {
-              const cat = c.categoryId ? categoryById.get(c.categoryId) : undefined;
-              const pct = totalSpend > 0 ? Math.round((c.amount / totalSpend) * 100) : 0;
-              return (
-                <div key={c.categoryId ?? 'none'} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, fontSize: 12 }}>
-                  <span aria-hidden style={{ width: 8, height: 8, borderRadius: 4, background: cat?.color ?? 'var(--text-faint)', flex: 'none' }} />
-                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat?.name ?? 'Sin categoría'}</span>
-                  <span className="figures" style={{ color: 'var(--text-muted)' }}>{pct}%</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
       </ChartCard>
 
       <ChartCard title="Fijos vs. variables">
@@ -123,15 +225,65 @@ export function AnalyticsScreen() {
           total={totalDC}
         />
       </ChartCard>
+
+      {detailCategoryId !== undefined && (
+        <CategoryDetailSheet
+          categoryId={detailCategoryId}
+          category={detailCategoryId ? categoryById.get(detailCategoryId) : null}
+          transactions={transactions.filter((t) => t.type === 'expense' && t.status !== 'cancelled' && t.categoryId === detailCategoryId)}
+          totalSpend={spendTotal}
+          onClose={() => setDetailCategoryId(undefined)}
+        />
+      )}
     </Screen>
   );
 }
 
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--radius-m)', padding: '14px 14px 10px', marginBottom: 14 }}>
-      <h2 style={{ fontSize: 13, fontWeight: 700, margin: '0 0 10px' }}>{title}</h2>
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--radius-m)', padding: '14px 14px 12px', marginBottom: 14, boxShadow: 'var(--shadow-1)' }}>
+      <h2 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, margin: '0 0 12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>{title}</h2>
       {children}
+    </div>
+  );
+}
+
+function StackedBar({ label, total, segments, amountColor, prefix }: {
+  label: string;
+  total: number;
+  segments: Array<{ id: string; name: string; color: string; amount: number }>;
+  amountColor: string;
+  prefix?: string;
+}) {
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+        <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-muted)' }}>{label}</span>
+        <span className="figures" style={{ fontWeight: 700, color: amountColor }}>
+          {prefix ?? ''}{formatMoney(total)}
+        </span>
+      </div>
+      {total > 0 ? (
+        <div style={{ display: 'flex', height: 20, borderRadius: 6, overflow: 'hidden', gap: 1 }}>
+          {segments.map((s) => (
+            <div
+              key={s.id}
+              title={`${s.name}: ${formatMoney(s.amount)}`}
+              style={{ width: `${(s.amount / total) * 100}%`, background: s.color, minWidth: 3 }}
+            />
+          ))}
+        </div>
+      ) : (
+        <div style={{ height: 20, borderRadius: 6, background: 'var(--surface-sunken)' }} />
+      )}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+        {segments.map((s) => (
+          <span key={s.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+            <span aria-hidden style={{ width: 8, height: 8, borderRadius: 4, background: s.color }} />
+            {s.name} · <span className="figures">{Math.round((s.amount / (total || 1)) * 100)}%</span>
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -144,7 +296,7 @@ function SplitBar({ a, b, total }: { a: { label: string; value: number; color: s
         <div style={{ width: `${pctA}%`, background: a.color }} />
         <div style={{ width: `${100 - pctA}%`, background: b.color }} />
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)' }}>
         <span><Dot color={a.color} /> {a.label} · <span className="figures">{formatMoney(a.value)}</span></span>
         <span><Dot color={b.color} /> {b.label} · <span className="figures">{formatMoney(b.value)}</span></span>
       </div>
@@ -156,6 +308,115 @@ function Dot({ color }: { color: string }) {
   return <span aria-hidden style={{ display: 'inline-block', width: 7, height: 7, borderRadius: 4, background: color, marginRight: 4 }} />;
 }
 
+function CategoryDetailSheet({
+  category, transactions, totalSpend, onClose,
+}: {
+  categoryId: string | null;
+  category: Category | null | undefined;
+  transactions: Transaction[];
+  totalSpend: number;
+  onClose: () => void;
+}) {
+  const total = transactions.reduce((a, t) => a + t.amount, 0);
+  const pct = totalSpend > 0 ? Math.round((total / totalSpend) * 100) : 0;
+  const avg = transactions.length ? Math.round(total / transactions.length) : 0;
+
+  return (
+    <div
+      role="dialog"
+      aria-label={category?.name ?? 'Categoría — detalle'}
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, background: 'color-mix(in srgb, black 40%, transparent)',
+        display: 'flex', alignItems: 'flex-end', zIndex: 60,
+        animation: 'fadeIn var(--dur-fast) var(--ease-spring-out)',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: 560, margin: '0 auto', background: 'var(--surface)',
+          borderRadius: '20px 20px 0 0', padding: '10px 20px calc(var(--safe-bottom) + 20px)',
+          maxHeight: '80vh', overflowY: 'auto',
+          animation: 'slideUp var(--dur-med) var(--ease-spring-out)',
+        }}
+      >
+        <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--line-strong)', margin: '4px auto 14px' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+          <span style={{ fontSize: 32 }}>{category?.icon ?? '✳️'}</span>
+          <div style={{ flex: 1 }}>
+            <h2 style={{ margin: 0, fontSize: 'var(--text-lg)', fontWeight: 700 }}>{category?.name ?? 'Sin categoría'}</h2>
+            <p style={{ margin: '2px 0 0', fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
+              {transactions.length} movimiento{transactions.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 16 }}>
+          <StatBox label="Total" value={formatMoney(total)} />
+          <StatBox label="% del gasto" value={`${pct}%`} />
+          <StatBox label="Promedio" value={formatMoney(avg)} />
+        </div>
+
+        {transactions.length > 0 ? (
+          <div>
+            <h3 style={{ margin: '0 0 8px', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em' }}>Movimientos</h3>
+            {transactions.slice(0, 20).map((tx, idx) => (
+              <div key={tx.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 4px', borderBottom: idx < Math.min(20, transactions.length) - 1 ? '1px solid var(--line)' : 'none' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 'var(--text-md)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tx.concept}</div>
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>{tx.date}</div>
+                </div>
+                <span className="figures" style={{ fontWeight: 600 }}>{formatMoney(tx.amount)}</span>
+              </div>
+            ))}
+            {transactions.length > 20 && (
+              <p style={{ margin: '10px 0 0', fontSize: 'var(--text-xs)', color: 'var(--text-faint)', textAlign: 'center' }}>
+                y {transactions.length - 20} más…
+              </p>
+            )}
+          </div>
+        ) : (
+          <p style={{ color: 'var(--text-faint)' }}>Aún no hay movimientos en esta categoría.</p>
+        )}
+
+        <button
+          type="button"
+          onClick={onClose}
+          style={{
+            width: '100%', marginTop: 16, minHeight: 44, borderRadius: 'var(--radius-s)',
+            border: 'none', background: 'var(--surface-sunken)', color: 'var(--text)',
+            fontWeight: 600, fontSize: 'var(--text-base)', cursor: 'pointer',
+          }}
+        >
+          Cerrar
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function StatBox({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ background: 'var(--surface-sunken)', borderRadius: 'var(--radius-s)', padding: '10px 12px' }}>
+      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: 2 }}>{label}</div>
+      <div className="figures" style={{ fontSize: 'var(--text-md)', fontWeight: 700 }}>{value}</div>
+    </div>
+  );
+}
+
+function calculateIncomeByCategory(transactions: Transaction[]): Array<{ categoryId: string | null; amount: number; count: number }> {
+  const map = new Map<string | null, { categoryId: string | null; amount: number; count: number }>();
+  for (const tx of transactions) {
+    if (tx.type !== 'income' || tx.status === 'cancelled') continue;
+    const current = map.get(tx.categoryId) ?? { categoryId: tx.categoryId, amount: 0, count: 0 };
+    current.amount += tx.amount;
+    current.count += 1;
+    map.set(tx.categoryId, current);
+  }
+  return Array.from(map.values()).sort((a, b) => b.amount - a.amount);
+}
+
 const tooltipStyle: React.CSSProperties = {
-  background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 8, fontSize: 12,
+  background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 8, fontSize: 'var(--text-sm)',
 };

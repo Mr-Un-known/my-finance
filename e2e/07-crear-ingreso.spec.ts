@@ -1,10 +1,11 @@
 import { test, expect } from './fixtures';
 
 test('crear un ingreso', async ({ page }) => {
-  await page.goto('movimientos?nuevo=1');
+  // El tipo se elige por query param (?tipo=ingreso) o long-press del FAB.
+  // El toggle Gasto/Ingreso dentro del form ya no existe (Fase 3).
+  await page.goto('movimientos?nuevo=1&tipo=ingreso');
   const dialog = page.getByRole('dialog', { name: 'Agregar movimiento' });
 
-  await dialog.getByRole('button', { name: 'Ingreso' }).click();
   await dialog.getByPlaceholder('Ej. Restaurante').fill('Pago freelance');
   await dialog.getByPlaceholder('$ 0').fill('1200000');
   await dialog.getByRole('button', { name: 'Débito' }).click();

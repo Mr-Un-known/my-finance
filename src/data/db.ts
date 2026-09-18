@@ -2,6 +2,7 @@ import Dexie, { type EntityTable } from 'dexie';
 import type {
   Budget, Category, PaymentMethod, RecurringRule, Reminder, Settings, Transaction,
 } from '@/domain/types';
+import type { ConceptIndexEntry } from '@/domain/inference/conceptInference';
 
 /**
  * Nombre con prefijo propio: en GitHub Pages todos los proyectos de
@@ -18,6 +19,7 @@ export class MyFinanceDB extends Dexie {
   recurringRules!: EntityTable<RecurringRule, 'id'>;
   budgets!: EntityTable<Budget, 'id'>;
   reminders!: EntityTable<Reminder, 'id'>;
+  conceptIndex!: EntityTable<ConceptIndexEntry, 'id'>;
 
   constructor() {
     super(DB_NAME);
@@ -32,6 +34,11 @@ export class MyFinanceDB extends Dexie {
       recurringRules: 'id, frequency',
       budgets: 'id, [year+month], categoryId',
       reminders: 'id, remindAt, status, transactionId',
+    });
+    // v2: conceptIndex — memoria del form de gasto/ingreso para autofill.
+    // Cada save de tx upsertea aquí, y el form al abrir consulta.
+    this.version(2).stores({
+      conceptIndex: 'id, lastUsedAt, count',
     });
   }
 }
