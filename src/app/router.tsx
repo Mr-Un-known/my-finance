@@ -1,6 +1,7 @@
 import { Suspense, lazy } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { AppLayout } from './AppLayout';
+import { ErrorBoundary } from './ErrorBoundary';
 import { DashboardScreen } from '@/features/dashboard/DashboardScreen';
 import { TransactionsScreen } from '@/features/transactions/TransactionsScreen';
 import { CalendarScreen } from '@/features/calendar/CalendarScreen';
@@ -24,12 +25,12 @@ export const router = createBrowserRouter(
   [
     {
       path: '/',
-      element: <AppLayout />,
+      element: <ErrorBoundary><AppLayout /></ErrorBoundary>,
       children: [
         { index: true, element: <DashboardScreen /> },
         { path: 'movimientos', element: <TransactionsScreen /> },
         { path: 'calendario', element: <CalendarScreen /> },
-        { path: 'analisis', element: <Suspense fallback={<LazyFallback />}><AnalyticsScreen /></Suspense> },
+        { path: 'analisis', element: <ErrorBoundary><Suspense fallback={<LazyFallback />}><AnalyticsScreen /></Suspense></ErrorBoundary> },
         { path: 'ajustes', element: <SettingsScreen /> },
         { path: 'ajustes/categorias', element: <CategoriesScreen /> },
         { path: 'ajustes/recurrentes', element: <RecurringRulesScreen /> },

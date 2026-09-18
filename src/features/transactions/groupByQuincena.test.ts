@@ -11,13 +11,13 @@ function tx(overrides: Partial<Transaction>): Transaction {
 }
 
 describe('groupByQuincena', () => {
-  it('agrupa por quincena y ordena del mas reciente al mas antiguo', () => {
+  it('agrupa por quincena y las ordena cronologicamente: la del 10 antes que la del 25', () => {
     const groups = groupByQuincena([
       tx({ date: '2026-09-10', amount: 10_000 }),
       tx({ date: '2026-09-25', amount: 20_000 }),
       tx({ date: '2026-08-12', amount: 5_000 }),
     ]);
-    expect(groups.map((g) => g.key)).toEqual(['2026-09-Q2', '2026-09-Q1', '2026-08-Q1']);
+    expect(groups.map((g) => g.key)).toEqual(['2026-08-Q1', '2026-09-Q1', '2026-09-Q2']);
   });
 
   it('asigna el color y la etiqueta correctos segun Q1/Q2', () => {

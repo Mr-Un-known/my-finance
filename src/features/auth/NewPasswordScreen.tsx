@@ -83,7 +83,7 @@ export function NewPasswordScreen() {
               aria-label="Repetir la contraseña"
               style={{
                 ...inputStyle,
-                borderColor: repetir.length > 0 && !coinciden ? 'var(--danger-text)' : 'var(--line-strong)',
+                borderColor: repetir.length > 0 && !coinciden ? 'var(--danger)' : 'var(--line-strong)',
               }}
             />
             {repetir.length > 0 && !coinciden && (

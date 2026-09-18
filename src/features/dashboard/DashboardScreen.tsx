@@ -262,7 +262,7 @@ export function DashboardScreen() {
                   style={{
                     width: 28, height: 28, minWidth: 28, borderRadius: 14, flex: 'none',
                     border: `1.5px solid ${isPaid ? 'var(--positive)' : 'var(--line-strong)'}`,
-                    background: isPaid ? 'var(--positive-text)' : 'transparent',
+                    background: isPaid ? 'var(--positive)' : 'transparent',
                     color: isPaid ? '#fff' : 'transparent',
                     display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: 14,
                     transition: 'all var(--dur-fast) var(--ease-spring-out)',

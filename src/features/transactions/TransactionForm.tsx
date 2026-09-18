@@ -370,7 +370,7 @@ export function TransactionForm({
           <span
             aria-hidden
             style={{
-              width: 44, height: 26, borderRadius: 13, background: value.markPaidNow ? 'var(--positive-text)' : 'var(--surface-sunken)',
+              width: 44, height: 26, borderRadius: 13, background: value.markPaidNow ? 'var(--positive)' : 'var(--surface-sunken)',
               border: '1px solid var(--line)', position: 'relative', transition: 'background var(--dur-fast)',
             }}
           >

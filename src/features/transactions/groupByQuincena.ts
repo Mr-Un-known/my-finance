@@ -59,5 +59,11 @@ export function groupByQuincena(
     });
   }
 
-  return groups.sort((x, y) => compareISO(y.start, x.start));
+  // Cronologico: la quincena del 10 antes que la del 25.
+  //
+  // Antes iba al reves (mas reciente primero), que es lo correcto para un
+  // feed infinito pero no para un mes: la lista se abre en la quincena del
+  // 25 y hay que bajar para ver como empezo el mes. Con la ventana de mes
+  // ya acotada, leer en orden es lo natural.
+  return groups.sort((x, y) => compareISO(x.start, y.start));
 }

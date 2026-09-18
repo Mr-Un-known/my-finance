@@ -29,6 +29,11 @@ export function TransactionsScreen() {
   const [formOpen, setFormOpen] = useState(false);
   const [prefill, setPrefill] = useState<Prefill | undefined>();
   const [query, setQuery] = useState('');
+  // null = no estamos seleccionando. Un Set vacio = modo seleccion, sin nada
+  // elegido todavia.
+  const [seleccion, setSeleccion] = useState<Set<string> | null>(null);
+  const [confirmarBorrado, setConfirmarBorrado] = useState(false);
+  const [aplicando, setAplicando] = useState(false);
   const [loadingDemo, setLoadingDemo] = useState(false);
 
   const today = todayISO();
@@ -134,6 +139,47 @@ export function TransactionsScreen() {
     return { income, expense, count: visible.length };
   }, [visible]);
 
+  const enSeleccion = seleccion !== null;
+
+  function alternarSeleccion(id: string) {
+    setSeleccion((prev) => {
+      const next = new Set(prev ?? []);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  /** Los movimientos elegidos, en el orden en que se ven. */
+  const elegidos = useMemo(
+    () => (seleccion ? visible.filter((t) => seleccion.has(t.id)) : []),
+    [seleccion, visible],
+  );
+
+  async function marcarElegidosPagados() {
+    setAplicando(true);
+    try {
+      const ahora = new Date().toISOString();
+      for (const tx of elegidos) {
+        if (tx.status === 'paid') continue; // ya estaba; no le movemos la fecha
+        await localRepository.saveTransaction({ ...tx, status: 'paid', updatedAt: ahora });
+      }
+      setSeleccion(null);
+    } finally {
+      setAplicando(false);
+    }
+  }
+
+  async function borrarElegidos() {
+    setAplicando(true);
+    try {
+      for (const tx of elegidos) await localRepository.deleteTransaction(tx.id);
+      setConfirmarBorrado(false);
+      setSeleccion(null);
+    } finally {
+      setAplicando(false);
+    }
+  }
+
   async function togglePaid(tx: Transaction) {
     await localRepository.saveTransaction({
       ...tx,
@@ -195,7 +241,12 @@ export function TransactionsScreen() {
   );
 
   return (
-    <Screen title="Movimientos" right={searching ? undefined : nav}>
+    <Screen
+      title={enSeleccion ? `${elegidos.length} seleccionado${elegidos.length === 1 ? '' : 's'}` : 'Movimientos'}
+      right={enSeleccion ? (
+        <button type="button" onClick={() => setSeleccion(null)} style={botonTexto}>Cancelar</button>
+      ) : (searching ? undefined : nav)}
+    >
       {transactions.length > 0 && (
         <input
           value={query}
@@ -222,9 +273,14 @@ export function TransactionsScreen() {
           <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
             {monthTotal.count} movimiento{monthTotal.count !== 1 ? 's' : ''}
           </span>
-          <span style={{ display: 'flex', gap: 12, fontSize: 'var(--text-sm)', fontWeight: 700 }}>
+          <span style={{ display: 'flex', gap: 12, alignItems: 'center', fontSize: 'var(--text-sm)', fontWeight: 700 }}>
             <span className="figures" style={{ color: 'var(--positive-text)' }}>+ {formatMoney(monthTotal.income)}</span>
             <span className="figures" style={{ color: 'var(--danger-text)' }}>− {formatMoney(monthTotal.expense)}</span>
+            {!enSeleccion && (
+              <button type="button" onClick={() => setSeleccion(new Set())} style={botonTexto}>
+                Seleccionar
+              </button>
+            )}
           </span>
         </div>
       )}
@@ -265,6 +321,8 @@ export function TransactionsScreen() {
                   paymentMethod={tx.paymentMethodId ? methodById.get(tx.paymentMethodId) : undefined}
                   onTogglePaid={() => togglePaid(tx)}
                   onOpen={() => { setEditing(tx); setFormOpen(true); }}
+                  seleccionado={seleccion?.has(tx.id)}
+                  onSeleccionar={enSeleccion ? () => alternarSeleccion(tx.id) : undefined}
                 />
               ))}
 
@@ -277,6 +335,94 @@ export function TransactionsScreen() {
             </div>
           </section>
         ))
+      )}
+
+      {enSeleccion && (
+        <div
+          role="toolbar"
+          aria-label="Acciones sobre lo seleccionado"
+          style={{
+            position: 'fixed', left: 0, right: 0,
+            // Justo encima del tab bar (61px) y su safe area.
+            bottom: 'calc(var(--safe-bottom) + 61px)',
+            zIndex: 45, display: 'flex', gap: 8,
+            padding: '10px 16px',
+            background: 'var(--surface)',
+            borderTop: '1px solid var(--line)',
+            boxShadow: '0 -2px 12px rgb(0 0 0 / 0.08)',
+          }}
+        >
+          <button
+            type="button"
+            onClick={marcarElegidosPagados}
+            disabled={elegidos.length === 0 || aplicando}
+            style={accionStyle(elegidos.length > 0 && !aplicando, 'var(--positive)', 'var(--positive-text)')}
+          >
+            Marcar pagados
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirmarBorrado(true)}
+            disabled={elegidos.length === 0 || aplicando}
+            style={accionStyle(elegidos.length > 0 && !aplicando, 'var(--danger)', 'var(--danger-text)')}
+          >
+            Eliminar
+          </button>
+        </div>
+      )}
+
+      {confirmarBorrado && (
+        <div
+          role="dialog"
+          aria-label="Confirmar eliminación"
+          onClick={() => setConfirmarBorrado(false)}
+          style={{
+            position: 'fixed', inset: 0, background: 'color-mix(in srgb, black 40%, transparent)',
+            display: 'flex', alignItems: 'flex-end', zIndex: 70,
+            animation: 'fadeIn var(--dur-fast) var(--ease-spring-out)',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: 560, margin: '0 auto', background: 'var(--surface)',
+              borderRadius: '20px 20px 0 0', padding: '10px 20px calc(var(--safe-bottom) + 20px)',
+              animation: 'slideUp var(--dur-med) var(--ease-spring-out)',
+            }}
+          >
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--line-strong)', margin: '4px auto 16px' }} />
+            <h2 style={{ margin: '0 0 6px', fontSize: 'var(--text-lg)', fontWeight: 700 }}>
+              ¿Eliminar {elegidos.length} movimiento{elegidos.length === 1 ? '' : 's'}?
+            </h2>
+            <p style={{ margin: '0 0 16px', color: 'var(--text-muted)', fontSize: 'var(--text-base)', lineHeight: 'var(--lh-normal)' }}>
+              Suman {formatMoney(elegidos.reduce((a, t) => a + t.amount, 0))}. Esto no se puede deshacer,
+              y también desaparecen de tus otros dispositivos.
+            </p>
+            <button
+              type="button"
+              onClick={borrarElegidos}
+              disabled={aplicando}
+              style={{
+                width: '100%', minHeight: 48, borderRadius: 'var(--radius-s)', border: 'none',
+                background: 'var(--danger)', color: '#fff', fontWeight: 700, fontSize: 16,
+                cursor: aplicando ? 'not-allowed' : 'pointer', marginBottom: 8,
+              }}
+            >
+              {aplicando ? 'Eliminando…' : 'Sí, eliminar'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmarBorrado(false)}
+              style={{
+                width: '100%', minHeight: 44, borderRadius: 'var(--radius-s)', border: 'none',
+                background: 'var(--surface-sunken)', color: 'var(--text)', fontWeight: 600,
+                fontSize: 'var(--text-base)', cursor: 'pointer',
+              }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
       )}
 
       {formOpen && (
@@ -294,4 +440,26 @@ export function TransactionsScreen() {
       )}
     </Screen>
   );
+}
+
+const botonTexto: React.CSSProperties = {
+  border: 'none', background: 'none', color: 'var(--q10-text)',
+  fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer',
+  minHeight: 'var(--tap)', padding: '0 4px',
+};
+
+/**
+ * El borde usa el color de identidad y el TEXTO su variante -text. No es
+ * un capricho: el verde y el rojo de iOS sobre blanco dan 2.2:1 y 3.5:1,
+ * por debajo del 4.5:1 que necesita un texto para leerse.
+ */
+function accionStyle(activo: boolean, borde: string, texto: string): React.CSSProperties {
+  return {
+    flex: 1, minHeight: 'var(--tap)', borderRadius: 'var(--radius-s)',
+    border: `1px solid ${activo ? borde : 'var(--line)'}`,
+    background: 'var(--surface)',
+    color: activo ? texto : 'var(--text-faint)',
+    fontWeight: 600, fontSize: 'var(--text-base)',
+    cursor: activo ? 'pointer' : 'not-allowed',
+  };
 }

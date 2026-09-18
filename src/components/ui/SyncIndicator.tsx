@@ -29,7 +29,7 @@ export function SyncIndicator({ estado, error, onReintentar }: {
         padding: '8px 14px',
         borderRadius: 999,
         background: esError ? 'var(--danger-soft)' : 'var(--surface)',
-        border: `1px solid ${esError ? 'var(--danger-text)' : 'var(--line-strong)'}`,
+        border: `1px solid ${esError ? 'var(--danger)' : 'var(--line-strong)'}`,
         boxShadow: 'var(--shadow-2)',
         fontSize: 'var(--text-sm)',
         color: 'var(--text)',

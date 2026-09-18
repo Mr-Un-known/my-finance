@@ -40,6 +40,10 @@ export default defineConfig({
         // IndexedDB local); esto se revisa de nuevo en la Fase 13.
         globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
         navigateFallback: '/my-finance/index.html',
+        // Sin esto quedan cachés de despliegues viejos apuntando a
+        // archivos con hash que ya no existen: el import de Análisis
+        // fallaba y la pantalla quedaba en blanco.
+        cleanupOutdatedCaches: true,
       },
       devOptions: { enabled: false },
     }),

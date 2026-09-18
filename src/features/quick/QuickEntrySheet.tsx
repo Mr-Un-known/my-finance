@@ -193,7 +193,7 @@ export function QuickEntrySheet({ onClose, onAjustar }: {
               aria-pressed={escuchando}
               style={{
                 width: 48, height: 48, flex: 'none', borderRadius: 24, border: 'none',
-                background: escuchando ? 'var(--danger-text)' : 'var(--q10)',
+                background: escuchando ? 'var(--danger)' : 'var(--q10)',
                 color: '#fff', fontSize: 20, cursor: 'pointer',
                 animation: escuchando ? 'fadeIn 0.6s ease-in-out infinite alternate' : undefined,
               }}
