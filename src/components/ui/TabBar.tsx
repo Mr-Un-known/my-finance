@@ -65,8 +65,8 @@ export function TabBar() {
 }
 
 /**
- * El "+" no es una pestaña: es una acción. Va flotando sobre el centro
- * de la barra para que el pulgar lo alcance sin estirarse.
+ * El "+" no es una pestaña: es una acción. Flota SOBRE el tab bar, no
+ * dentro — con bottom pequeño se comía la pestaña central (Calendario).
  */
 function AddButton({ onClick }: { onClick: () => void }) {
   return (
@@ -77,7 +77,7 @@ function AddButton({ onClick }: { onClick: () => void }) {
       style={{
         position: 'absolute',
         left: '50%',
-        bottom: 'calc(var(--safe-bottom) + 14px)',
+        bottom: 'calc(100% + 12px)',
         transform: 'translateX(-50%)',
         width: 56,
         height: 56,
