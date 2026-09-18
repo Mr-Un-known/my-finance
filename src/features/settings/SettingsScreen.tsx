@@ -6,7 +6,7 @@ import { localRepository } from '@/data/local/localRepository';
 import { exportBackupJSON, exportTransactionsCSV, parseBackupFile, importBackup, type BackupPreview } from '@/data/backup/exportImport';
 import type { Backup } from '@/data/backup/schema';
 import type { Settings } from '@/domain/types';
-import { CURRENCIES } from '@/domain/money/currencies';
+import { CURRENCIES, currencySample } from '@/domain/money/currencies';
 import { ImportPreviewSheet } from './ImportPreviewSheet';
 import { CloudSection } from './CloudSection';
 import { NotificationsSection } from '@/features/notifications/NotificationsSection';
@@ -118,7 +118,7 @@ export function SettingsScreen() {
                 }}
               >
                 <span style={{ flex: 1, textAlign: 'left', fontWeight: activa ? 600 : 400 }}>{c.label}</span>
-                <span className="figures" style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>{c.sample}</span>
+                <span className="figures" style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>{currencySample(c)}</span>
               </button>
             );
           })}

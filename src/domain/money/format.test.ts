@@ -60,3 +60,31 @@ describe('setMoneyLocale', () => {
     expect(formatMoney(2_500_000)).toBe('$ 2.500.000');
   });
 });
+
+/**
+ * La misma tabla vive en mobile/lib/domain/money/format.dart y su test
+ * afirma exactamente estos valores. Si cambia uno, que falle el otro.
+ */
+describe('paridad con la app nativa', () => {
+  const CASOS: Array<[string, string, number, string]> = [
+    ['es-CO', 'COP', 2_500_000, '$ 2.500.000'],
+    ['es-MX', 'MXN', 2_500, '$2,500'],
+    ['es-AR', 'ARS', 2_500, '$ 2.500'],
+    ['es-CL', 'CLP', 2_500, '$2.500'],
+    ['es-PE', 'PEN', 2_500, 'S/ 2,500'],
+    ['en-US', 'USD', 2_500, '$2,500'],
+    ['es-ES', 'EUR', 2_500, '2.500 €'],
+  ];
+
+  it('escribe cada moneda igual que Flutter', async () => {
+    const { setMoneyLocale } = await import('./format');
+    try {
+      for (const [locale, currency, monto, esperado] of CASOS) {
+        setMoneyLocale(locale, currency);
+        expect(formatMoney(monto)).toBe(esperado);
+      }
+    } finally {
+      setMoneyLocale('es-CO', 'COP');
+    }
+  });
+});

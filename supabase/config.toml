@@ -1,0 +1,33 @@
+# Configuración del proyecto de Supabase, versionada.
+#
+# A PROPÓSITO declara SOLO lo que queremos distinto del default del
+# dashboard: `supabase config push` deja intacto todo lo que este archivo
+# no menciona, pero sobrescribe sin preguntar lo que sí. Un config.toml
+# completo generado por `supabase init` pisaría ajustes reales del proyecto
+# hospedado con valores de plantilla.
+#
+# Antes de cualquier push: `supabase config diff` y leerlo.
+
+project_id = "xuguvoikrxzvklflikdh"
+
+[auth]
+# Adónde puede volver el enlace de "olvidé mi contraseña". Sin esto, el
+# enlace llega pero rebota fuera de la app.
+site_url = "https://mr-un-known.github.io/my-finance/"
+additional_redirect_urls = [
+  "https://mr-un-known.github.io/my-finance/",
+  "http://localhost:5173/my-finance/",
+  "http://localhost:5199/my-finance/",
+]
+
+[auth.email]
+# Apagado a propósito. El SMTP que trae Supabase de fábrica está limitado a
+# un puñado de correos por hora, así que confirmar por correo hacía que
+# crear cuenta devolviera "email rate limit exceeded" al segundo intento.
+# Para una app personal el correo no es la barrera: lo que protege los
+# datos es RLS por user_id (supabase/migrations/0001_init.sql), y la
+# contraseña ya se exige desde el primer momento.
+#
+# Si algún día hay más de un usuario, el camino es SMTP propio (Resend,
+# SendGrid) y volver a poner esto en true — no dejarlo así por inercia.
+enable_confirmations = false

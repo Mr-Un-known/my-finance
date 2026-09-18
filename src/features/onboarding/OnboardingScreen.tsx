@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { localRepository } from '@/data/local/localRepository';
 import { db } from '@/data/db';
-import { CURRENCIES } from '@/domain/money/currencies';
+import { CURRENCIES, currencySample } from '@/domain/money/currencies';
 import { DEFAULT_CATEGORIES } from '@/domain/seed/defaultCategories';
 import { setMoneyLocale, formatMoney } from '@/domain/money/format';
 import { haptic } from '@/lib/haptic';
@@ -113,7 +113,7 @@ export function OnboardingScreen({ settings }: { settings: Settings }) {
                       <span style={{ display: 'block', fontWeight: 600 }}>{c.label}</span>
                       <span style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>{c.code}</span>
                     </span>
-                    <span className="figures" style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>{c.sample}</span>
+                    <span className="figures" style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>{currencySample(c)}</span>
                   </button>
                 ))}
               </div>
@@ -167,7 +167,7 @@ export function OnboardingScreen({ settings }: { settings: Settings }) {
                 })}
               </div>
               <p style={{ marginTop: 14, fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
-                {elegidas.size} seleccionadas · ejemplo: {formatMoney(125_000, monedaElegida.locale, monedaElegida.code)}
+                {elegidas.size} seleccionadas · ejemplo: {formatMoney(125_000, monedaElegida.code)}
               </p>
             </Pregunta>
           )}

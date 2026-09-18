@@ -18,3 +18,10 @@ coverage
 preview-shots/
 playwright-report/
 test-results/
+
+# Flutter
+mobile/.dart_tool/
+mobile/build/
+mobile/ios/Pods/
+mobile/ios/.symlinks/
+mobile/.flutter-plugins-dependencies

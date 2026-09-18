@@ -7,9 +7,35 @@
  * proposito: hay ~40 call sites de formatMoney() en la UI y ninguno tiene
  * por que cargar con el Settings. La app la fija una vez al arrancar
  * (ver useMoneyFormat) y todos los formatos siguen.
+ *
+ * NO usa Intl.NumberFormat con style:'currency'. Motivo: la app nativa
+ * (mobile/) formatea la misma plata del mismo usuario, y los datos CLDR
+ * que trae Dart no son los mismos que los del navegador — es-PE agrupa
+ * con coma aqui y con punto alla, y es-ES no agrupa numeros de 4 digitos
+ * ("2500 €") mientras Dart si. La tabla de abajo esta duplicada, identica,
+ * en mobile/lib/domain/money/format.dart, y los dos tests la verifican:
+ * es la unica forma de que las dos apps escriban la misma cifra igual.
  */
 
-const formatters = new Map<string, Intl.NumberFormat>();
+interface MonedaFormato {
+  simbolo: string;
+  /** true = el simbolo va despues ("2.500 €"). */
+  sufijo?: boolean;
+  /** ¿espacio entre simbolo y numero? */
+  espacio?: boolean;
+  /** Separador de miles. */
+  miles: string;
+}
+
+const FORMATOS: Record<string, MonedaFormato> = {
+  COP: { simbolo: '$', miles: '.' },
+  MXN: { simbolo: '$', miles: ',', espacio: false },
+  ARS: { simbolo: '$', miles: '.' },
+  CLP: { simbolo: '$', miles: '.', espacio: false },
+  PEN: { simbolo: 'S/', miles: ',' },
+  USD: { simbolo: '$', miles: ',', espacio: false },
+  EUR: { simbolo: '€', miles: '.', sufijo: true },
+};
 
 let current = { locale: 'es-CO', currency: 'COP' };
 
@@ -18,37 +44,30 @@ export function setMoneyLocale(locale: string, currency: string): void {
   current = { locale, currency };
 }
 
-function formatter(locale: string, currency: string): Intl.NumberFormat {
-  const key = `${locale}|${currency}`;
-  let f = formatters.get(key);
-  if (!f) {
-    f = new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    });
-    formatters.set(key, f);
-  }
-  return f;
+function formatoDe(currency: string): MonedaFormato {
+  return FORMATOS[currency] ?? { simbolo: currency, miles: '.' };
 }
 
-export function formatMoney(
-  amount: number,
-  locale = current.locale,
-  currency = current.currency,
-): string {
-  // El NBSP que mete Intl se reemplaza por espacio normal para que no
-  // se vea raro en iOS.
-  return formatter(locale, currency).format(amount).replace(/\u00a0/g, ' ');
+/** Agrupa de a tres desde la derecha. Deterministico, sin depender de CLDR. */
+function agrupar(n: number, separador: string): string {
+  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, separador);
+}
+
+/**
+ * El locale no es parametro: con la tabla de arriba, el formato lo decide
+ * la moneda sola. Se sigue guardando en Settings porque lo usan las fechas.
+ */
+export function formatMoney(amount: number, currency = current.currency): string {
+  const f = formatoDe(currency);
+  const signo = amount < 0 ? '-' : '';
+  const cuerpo = agrupar(Math.abs(Math.round(amount)), f.miles);
+  const sep = f.espacio === false ? '' : ' ';
+  return f.sufijo ? `${signo}${cuerpo}${sep}${f.simbolo}` : `${signo}${f.simbolo}${sep}${cuerpo}`;
 }
 
 /** Solo el simbolo de la moneda activa ('$', '€'...), para ejes y etiquetas cortas. */
 export function currencySymbol(): string {
-  // formatToParts es la unica forma fiable: el simbolo depende de la
-  // combinacion locale+moneda, no de la moneda sola (US$ vs $).
-  const parts = formatter(current.locale, current.currency).formatToParts(0);
-  return parts.find((p) => p.type === 'currency')?.value ?? '$';
+  return formatoDe(current.currency).simbolo;
 }
 
 /** Version compacta para graficos: $ 2,5 M */

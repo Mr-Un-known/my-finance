@@ -1,5 +1,11 @@
 # App nativa (Flutter) y emulador de iPhone — estado y decisión
 
+> **Actualización:** el port arrancó. Xcode ya está instalado y el dominio
+> está portado con sus 75 tests en `mobile/`. Ver
+> [mobile/README.md](../mobile/README.md) para el estado y cómo correrlo.
+> Lo de abajo es la decisión original y sigue explicando el porqué del
+> orden de trabajo.
+
 Pedido: *"crear una app directamente que pueda instalar en mi celular […]
 descarga emulador para verlo directamente aquí […] creo que la mejor
 opción es Flutter"*.
