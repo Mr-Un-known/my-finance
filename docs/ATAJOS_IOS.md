@@ -3,14 +3,21 @@
 Cómo meter gastos e ingresos desde el iPhone sin abrir la app y navegar
 hasta el formulario.
 
-> **Antes de empezar: ten cuenta creada.** iOS no sabe abrir una URL
-> dentro de una web app instalada, así que el Atajo siempre abre Safari.
-> Safari y la app instalada tienen almacenamientos separados, de modo que
-> sin cuenta el gasto que registras desde el Atajo no aparece en la app.
-> Con cuenta, los dos lados sincronizan solos. Ver [CUENTA.md](CUENTA.md).
+## Lo primero: por qué un enlace no alcanza
 
-> **Ojo con la URL:** el usuario es `mr-un-known` (con la "n" final).
-> Sin ella el enlace da "Site not found".
+Un Atajo que abre un enlace `https://…` **cae en Safari**, no en la app
+instalada — iOS no sabe meter una URL dentro de una web app de la pantalla
+de inicio. Y Safari tiene su propio almacenamiento, así que el gasto queda
+del lado equivocado.
+
+Por eso hay un camino que **no abre un enlace**: el Atajo manda el texto a
+tu bandeja, y la app te lo muestra para confirmar. Para el SMS del banco
+es mejor que abrir algo: no te interrumpe, no cambia de app, no pide nada.
+Y si además quieres que se abra la app, el Atajo la abre con la acción
+**Abrir app** — que sí entiende las web apps instaladas.
+
+Necesitas tener cuenta ([CUENTA.md](CUENTA.md)): la bandeja va con tu
+cuenta, no con el navegador.
 
 ---
 
@@ -92,9 +99,14 @@ trasera** (Ajustes → Accesibilidad → Tocar → Toque en la parte trasera).
 > Dentro de la app también puedes hablar: el botón **+** → **Contarle a la
 > app** tiene micrófono. Ahí no hace falta Atajos.
 
+**Variante que abre la app instalada** (en vez de Safari): en lugar de
+*Abrir URLs*, usa **Obtener contenido de la URL** contra la dirección de
+Ajustes —igual que el Atajo 2, pero con `origen` en `dictado`— y después
+**Abrir app** → *My Finance*.
+
 ---
 
-## Atajo 2 — Desde el SMS del banco
+## Atajo 2 — Desde el SMS del banco, sin abrir nada
 
 **Lo que iOS sí permite y lo que no.** Ninguna app puede leer tus mensajes:
 iOS no lo expone, ni a las apps ni a los Atajos. Lo único posible es una
@@ -102,23 +114,40 @@ iOS no lo expone, ni a las apps ni a los Atajos. Lo único posible es una
 mensaje. Es automático a partir de ahí, pero el disparador es la llegada
 del SMS, no una app leyendo tu bandeja.
 
+### Antes: saca tu clave
+
+En la app: **Ajustes → Automatizaciones (Atajos) → Generar clave**. Se
+muestra una sola vez; cópiala. Ahí mismo está la dirección que vas a usar.
+
+Esa clave sirve **solo** para dejar texto en tu bandeja: no lee tus
+movimientos, no lee tu configuración, no borra nada. Si se te filtra, lo
+peor que puede pasar es que te escriban basura en la bandeja, que vas a
+ver antes de confirmar. Generar una nueva anula la anterior.
+
+### La automatización
+
 1. Atajos → pestaña **Automatización** → **+** → **Mensaje**.
 2. **Remitente**: el número o nombre corto de tu banco.
    **Contiene**: una palabra que salga siempre (`Compra`, `Pagaste`,
    `Recibiste`).
 3. Acciones:
    - **Obtener texto del input** (el cuerpo del mensaje).
-   - **Texto**:
-
-     ```
-     https://mr-un-known.github.io/my-finance/movimientos?texto=[Texto]
-     ```
-
-   - **Abrir URLs**.
+   - **Obtener contenido de la URL**, con:
+     - URL: la dirección que copiaste de Ajustes
+     - Método: **POST**
+     - Cuerpo de la solicitud: **JSON**
+       | Campo | Valor |
+       |---|---|
+       | `token` | tu clave |
+       | `texto` | la variable *Texto* del paso anterior |
+       | `origen` | `sms` |
 4. Activa **Ejecutar inmediatamente**.
 
-Eso es todo. **No hace falta ninguna expresión regular**: le pasas el SMS
-crudo y la app lo interpreta. Ya reconoce las formas típicas:
+Listo. El Atajo no abre nada. La próxima vez que abras la app te aparece
+arriba **"1 movimiento llegó solo"**, lo revisas y lo anotas de un toque.
+
+**No hace falta ninguna expresión regular**: le pasas el SMS crudo y la app
+lo interpreta. Ya reconoce las formas típicas:
 
 ```
 Bancolombia le informa Compra por $145.000 en EXITO 18/09/2026 14:32
@@ -129,10 +158,19 @@ Bancolombia: Recibiste $2.800.000 por NOMINA
 Saca el monto, el comercio, la fecha del mensaje, y si fue compra o abono.
 El nombre del banco no queda como concepto.
 
-Si tu banco usa un formato que no reconoce, mándame un mensaje de ejemplo
-(sin datos de cuenta) y lo agrego.
+> El toque de confirmación es a propósito: el monto lo escribió tu banco
+> con un formato que puede cambiar sin avisar. Un registro de plata que
+> entra sin que nadie lo mire es peor que teclearlo.
 
----
+### Si quieres que además se abra la app
+
+Agrega al final del Atajo la acción **Abrir app** y elegí *My Finance*.
+Esa acción sí entiende las web apps instaladas en la pantalla de inicio
+(no así los enlaces). La app abre con el movimiento ya esperándote en la
+bandeja.
+
+Si *My Finance* no aparece en la lista, es que todavía no la instalaste:
+Safari → **Compartir** → **Agregar a inicio**.
 
 ## Atajo 3 — Gasto fijo de un toque
 

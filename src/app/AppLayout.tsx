@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import { TabBar } from '@/components/ui/TabBar';
 import { InstallBanner } from '@/components/ui/InstallBanner';
+import { InboxBanner } from '@/features/inbox/InboxBanner';
 import { SyncIndicator } from '@/components/ui/SyncIndicator';
 import { AuthGate } from '@/features/auth/AuthGate';
 import { OnboardingGate } from '@/features/onboarding/OnboardingGate';
@@ -45,6 +46,7 @@ function AppShell() {
           }}
         >
           <InstallBanner />
+          <InboxBanner />
           <Outlet />
         </main>
         <TabBar />

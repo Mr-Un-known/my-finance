@@ -9,6 +9,7 @@ import type { Settings } from '@/domain/types';
 import { CURRENCIES, currencySample } from '@/domain/money/currencies';
 import { ImportPreviewSheet } from './ImportPreviewSheet';
 import { CloudSection } from './CloudSection';
+import { AutomationSection } from './AutomationSection';
 import { NotificationsSection } from '@/features/notifications/NotificationsSection';
 
 const THEMES: Array<{ value: Settings['theme']; label: string }> = [
@@ -180,6 +181,7 @@ export function SettingsScreen() {
       </section>
 
       <CloudSection />
+      <AutomationSection />
       <NotificationsSection />
 
       <section style={sectionStyle}>
