@@ -134,3 +134,27 @@ describe('categorías por palabra clave', () => {
     it(frase, () => expect(p(frase).categoryIdSugerida).toBe(esperada));
   }
 });
+
+describe('ruido de los SMS que no es el comercio', () => {
+  it('la hora no se cuela en el concepto', () => {
+    // Caso real: el primer SMS que probé quedó como "Rappi 19 40".
+    const r = p('Bancolombia le informa Compra por $38.500 en RAPPI 18/09/2026 19:40');
+    expect(r.concept.toLowerCase()).toBe('rappi');
+    expect(r.amount).toBe(38_500);
+  });
+
+  it('la hora con am/pm tampoco', () => {
+    expect(p('Compra por $10.000 en D1 15/09/2026 08:05 a.m.').concept.toLowerCase()).toBe('d1');
+  });
+
+  it('el número de autorización tampoco', () => {
+    const r = p('Davivienda: Compra aprobada por $89.900 en NETFLIX Aut 123456');
+    expect(r.concept.toLowerCase()).toBe('netflix');
+  });
+
+  it('el saldo que reporta el banco no se confunde con el comercio', () => {
+    const r = p('Bancolombia Compra por $45.000 en EXITO. Saldo disponible 1200000');
+    expect(r.amount).toBe(45_000);
+    expect(r.concept.toLowerCase()).toBe('exito');
+  });
+});

@@ -116,8 +116,19 @@ del SMS, no una app leyendo tu bandeja.
 
 ### Antes: saca tu clave
 
-En la app: **Ajustes → Automatizaciones (Atajos) → Generar clave**. Se
-muestra una sola vez; cópiala. Ahí mismo está la dirección que vas a usar.
+La clave sale de **My Finance**, o sea de tu propia app — no de Atajos ni
+del panel de Supabase.
+
+1. Abre <https://mr-un-known.github.io/my-finance/> (o el ícono de la
+   pantalla de inicio, si ya la instalaste).
+2. Inicia sesión con tu correo y contraseña.
+3. Pestaña **Ajustes**, la última de la barra de abajo.
+4. Baja hasta **Automatizaciones (Atajos)** — queda debajo de *Tu cuenta*.
+5. Toca **Generar clave**.
+
+Se muestra **una sola vez**: cópiala y pégala en el Atajo antes de salir de
+ahí. Justo debajo aparece la dirección (`…/functions/v1/ingest`) con su
+propio botón de copiar; esa es la que va en el campo URL del Atajo.
 
 Esa clave sirve **solo** para dejar texto en tu bandeja: no lee tus
 movimientos, no lee tu configuración, no borra nada. Si se te filtra, lo

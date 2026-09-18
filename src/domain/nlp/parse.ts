@@ -107,6 +107,14 @@ function extraerConcepto(texto: string, aQuitar: Array<string | null>): string {
     if (!trozo) continue;
     t = t.replace(trozo, ' ');
   }
+  // La hora del SMS ("18/09/2026 14:32"): la fecha ya se sacó arriba, pero
+  // la hora quedaba suelta y terminaba dentro del concepto — el primer SMS
+  // real que probé quedó como "Rappi 19 40".
+  t = t.replace(/\b\d{1,2}:\d{2}(:\d{2})?\s*(a\.?m\.?|p\.?m\.?)?/g, ' ');
+  // Restos de referencia que tampoco son el comercio.
+  // Varias palabras seguidas antes del numero: 'saldo disponible 1200000'
+  // dejaba 'saldo' suelto cuando el patron solo aceptaba una.
+  t = t.replace(/\b(?:(?:ref|referencia|autorizacion|aut|cupo|saldo|disponible|trans|tarjeta|terminada)\s*[:#]?\s*)+\d+/g, ' ');
   const palabras = t
     .replace(/[^\p{L}\p{N}\s]/gu, ' ')
     .split(/\s+/)
