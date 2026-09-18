@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { getSupabase } from '@/data/supabase/client';
+import { botonStyle, enlaceStyle, inputStyle, MIN_CLAVE, traducirError } from './authStyles';
 
-type Modo = 'entrar' | 'crear' | 'olvide' | 'nueva-clave';
-
-const MIN_CLAVE = 8;
+type Modo = 'entrar' | 'crear' | 'olvide';
 
 /**
  * Cuenta con correo y contraseña. Antes era magic link, que en el iPhone
@@ -14,6 +13,9 @@ const MIN_CLAVE = 8;
  * Con correo+contraseña entras en cualquier dispositivo, y eso es lo que
  * hace que los datos te sigan: al iniciar sesión se baja todo de la nube
  * (ver useCloudSync).
+ *
+ * El cambio de contraseña NO vive acá: vive en NewPasswordScreen, arriba
+ * de AuthGate, porque el enlace de recuperación llega con sesión abierta.
  */
 export function SignInScreen() {
   const [modo, setModo] = useState<Modo>('entrar');
@@ -22,22 +24,6 @@ export function SignInScreen() {
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState('');
   const [aviso, setAviso] = useState('');
-
-  // Si llega desde el enlace de "olvidé mi contraseña", Supabase abre una
-  // sesión de recuperación y hay que pedir la clave nueva, no el login.
-  useEffect(() => {
-    let cancelado = false;
-    void getSupabase().then((supabase) => {
-      const { data } = supabase.auth.onAuthStateChange((evento) => {
-        if (!cancelado && evento === 'PASSWORD_RECOVERY') {
-          setModo('nueva-clave');
-          setAviso('Escribe tu contraseña nueva.');
-        }
-      });
-      if (cancelado) data.subscription.unsubscribe();
-    });
-    return () => { cancelado = true; };
-  }, []);
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
@@ -65,20 +51,12 @@ export function SignInScreen() {
         return;
       }
 
-      if (modo === 'olvide') {
-        const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin + window.location.pathname,
-        });
-        if (err) throw err;
-        setAviso(`Te enviamos un enlace a ${email} para cambiar la contraseña.`);
-        return;
-      }
-
-      // nueva-clave
-      if (clave.length < MIN_CLAVE) throw new Error(`La contraseña necesita al menos ${MIN_CLAVE} caracteres.`);
-      const { error: err } = await supabase.auth.updateUser({ password: clave });
+      // olvide
+      const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + window.location.pathname,
+      });
       if (err) throw err;
-      setAviso('Contraseña actualizada.');
+      setAviso(`Te enviamos un enlace a ${email}. Ábrelo y te va a pedir la contraseña nueva.`);
     } catch (e) {
       setError(traducirError(e));
     } finally {
@@ -87,7 +65,6 @@ export function SignInScreen() {
   }
 
   const pideClave = modo !== 'olvide';
-  const pideCorreo = modo !== 'nueva-clave';
 
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--gap-l)' }}>
@@ -99,26 +76,27 @@ export function SignInScreen() {
         <p style={{ textAlign: 'center', color: 'var(--text-muted)', margin: '0 0 24px', fontSize: 'var(--text-base)' }}>
           {modo === 'crear' ? 'Crea tu cuenta y tus datos te siguen a cualquier dispositivo.'
             : modo === 'olvide' ? 'Te enviamos un enlace para cambiarla.'
-            : modo === 'nueva-clave' ? 'Elige tu contraseña nueva.'
             : 'Entra y tus datos aparecen donde estés.'}
         </p>
 
-        {modo === 'entrar' || modo === 'crear' ? (
+        {modo !== 'olvide' && (
           <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-            <Pestana activa={modo === 'entrar'} onClick={() => { setModo('entrar'); setError(''); }}>Ya tengo cuenta</Pestana>
-            <Pestana activa={modo === 'crear'} onClick={() => { setModo('crear'); setError(''); }}>Crear cuenta</Pestana>
+            <Pestana activa={modo === 'entrar'} onClick={() => { setModo('entrar'); setError(''); }}>
+              Ya tengo cuenta
+            </Pestana>
+            <Pestana activa={modo === 'crear'} onClick={() => { setModo('crear'); setError(''); }}>
+              Crear cuenta
+            </Pestana>
           </div>
-        ) : null}
+        )}
 
         <form onSubmit={enviar}>
-          {pideCorreo && (
-            <input
-              type="email" required autoComplete="email" value={email}
-              onChange={(e) => setEmail(e.target.value)} placeholder="tu@correo.com"
-              aria-label="Correo"
-              style={inputStyle}
-            />
-          )}
+          <input
+            type="email" required autoComplete="email" value={email}
+            onChange={(e) => setEmail(e.target.value)} placeholder="tu@correo.com"
+            aria-label="Correo"
+            style={inputStyle}
+          />
           {pideClave && (
             <input
               type="password" required
@@ -135,7 +113,6 @@ export function SignInScreen() {
             {ocupado ? 'Un momento…'
               : modo === 'crear' ? 'Crear cuenta'
               : modo === 'olvide' ? 'Enviar enlace'
-              : modo === 'nueva-clave' ? 'Guardar contraseña'
               : 'Entrar'}
           </button>
         </form>
@@ -145,7 +122,7 @@ export function SignInScreen() {
             ¿Olvidaste tu contraseña?
           </button>
         )}
-        {(modo === 'olvide' || modo === 'nueva-clave') && (
+        {modo === 'olvide' && (
           <button type="button" onClick={() => { setModo('entrar'); setError(''); setAviso(''); }} style={enlaceStyle}>
             Volver a entrar
           </button>
@@ -177,32 +154,3 @@ function Pestana({ activa, onClick, children }: { activa: boolean; onClick: () =
     </button>
   );
 }
-
-/** Los mensajes de Supabase vienen en inglés y son crípticos para quien usa la app. */
-function traducirError(e: unknown): string {
-  const raw = e instanceof Error ? e.message : String(e);
-  const m = raw.toLowerCase();
-  if (m.includes('invalid login credentials')) return 'Correo o contraseña incorrectos.';
-  if (m.includes('user already registered')) return 'Ese correo ya tiene cuenta. Entra en vez de crearla.';
-  if (m.includes('email not confirmed')) return 'Falta confirmar el correo. Revisa tu bandeja.';
-  if (m.includes('password should be at least')) return `La contraseña necesita al menos ${MIN_CLAVE} caracteres.`;
-  if (m.includes('unable to validate email')) return 'Ese correo no parece válido.';
-  if (m.includes('for security purposes')) return 'Demasiados intentos seguidos. Espera un momento.';
-  if (m.includes('failed to fetch') || m.includes('network')) return 'Sin conexión. Revisa tu internet.';
-  return raw;
-}
-
-const inputStyle: React.CSSProperties = {
-  width: '100%', minHeight: 'var(--tap)', padding: '0 14px', marginBottom: 10,
-  borderRadius: 'var(--radius-s)', border: '1px solid var(--line-strong)',
-  background: 'var(--surface)', color: 'var(--text)', fontSize: 16,
-};
-const botonStyle: React.CSSProperties = {
-  width: '100%', minHeight: 48, borderRadius: 'var(--radius-s)', border: 'none',
-  background: 'var(--q10)', color: '#fff', fontWeight: 700, fontSize: 16, cursor: 'pointer',
-};
-const enlaceStyle: React.CSSProperties = {
-  display: 'block', width: '100%', marginTop: 12, minHeight: 'var(--tap)',
-  background: 'none', border: 'none', color: 'var(--q10)',
-  fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer',
-};

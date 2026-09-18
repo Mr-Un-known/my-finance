@@ -140,4 +140,5 @@ otro navegador, entra con el mismo correo: tiene que estar ahí.
 | `relation "public.deletions" does not exist` | Falta la 0005 |
 | "Falta confirmar el correo" | *Confirm email* está encendido en Supabase |
 | El enlace de contraseña no vuelve a la app | Falta la URL en *Redirect URLs* |
+| El enlace de contraseña entra directo sin dejar cambiarla | Era un bug nuestro, arreglado: el enlace abre sesión, y el gate mostraba la app antes de preguntar. Ver `src/features/auth/recovery.ts` |
 | Entro en otro dispositivo y no veo nada | Mira Ajustes → Tu cuenta → Sincronizar ahora; si da error, el mensaje dice cuál |
