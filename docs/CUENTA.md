@@ -141,4 +141,5 @@ otro navegador, entra con el mismo correo: tiene que estar ahí.
 | "Falta confirmar el correo" | *Confirm email* está encendido en Supabase |
 | El enlace de contraseña no vuelve a la app | Falta la URL en *Redirect URLs* |
 | El enlace de contraseña entra directo sin dejar cambiarla | Era un bug nuestro, arreglado: el enlace abre sesión, y el gate mostraba la app antes de preguntar. Ver `src/features/auth/recovery.ts` |
+| Pide nombre y categorías en cada login | Era un bug nuestro, arreglado. Los Settings no tenían `updatedAt`, así que bajar de la nube pisaba lo local a ciegas; y la configuración se completa DESPUÉS del push del login, así que nunca subía. Ver `elegirSettings` en `src/data/sync/syncService.ts` y `pedirSync` en `useCloudSync.ts` |
 | Entro en otro dispositivo y no veo nada | Mira Ajustes → Tu cuenta → Sincronizar ahora; si da error, el mensaje dice cuál |

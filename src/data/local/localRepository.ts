@@ -25,6 +25,9 @@ export const DEFAULT_SETTINGS: Settings = {
   reminderDefaultDaysBefore: 1,
   theme: 'system',
   onboardedAt: null,
+  // Vacio a proposito: una fila que nunca se guardo no puede ganarle a
+  // ninguna de la nube en la comparacion de "cual es mas nueva".
+  updatedAt: '',
 };
 
 /**
@@ -41,7 +44,10 @@ export const localRepository: Repository = {
     return withDefaults(await db.settings.get('singleton'));
   },
   async saveSettings(settings) {
-    await db.settings.put(settings);
+    // La marca de tiempo se pone aca y no en cada pantalla: es el unico
+    // lugar por el que pasan todos los guardados, asi que es imposible
+    // olvidarse y dejar un Settings que la sincronizacion no sepa fechar.
+    await db.settings.put({ ...settings, updatedAt: new Date().toISOString() });
   },
 
   listCategories: () => db.categories.orderBy('sortOrder').toArray(),

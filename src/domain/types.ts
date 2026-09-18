@@ -32,6 +32,12 @@ export interface Settings {
   theme: 'system' | 'light' | 'dark';
   /** ISO datetime de cuando termino la configuracion inicial. null = mostrarla. */
   onboardedAt: string | null;
+  /**
+   * Cuando se guardo por ultima vez. Lo necesita la sincronizacion: sin
+   * esto, bajar de la nube pisaba lo local a ciegas y borraba la
+   * configuracion inicial recien hecha en cada login.
+   */
+  updatedAt: string;
 }
 
 export interface Category {

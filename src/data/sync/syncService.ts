@@ -19,7 +19,7 @@ import { db } from '../db';
 import { supabaseRepository } from '../supabase/supabaseRepository';
 import { applyRemoteDeletions, listRemoteTombstones, saveRemoteTombstones } from '../supabase/deletions';
 import { deletedIdsOf, mergeTombstones, type Tombstone } from './tombstones';
-import type { Transaction } from '@/domain/types';
+import type { Settings, Transaction } from '@/domain/types';
 
 export interface SyncResult {
   pushed: number;
@@ -28,7 +28,32 @@ export interface SyncResult {
 }
 
 function newer(a: string, b: string): boolean {
-  return new Date(a).getTime() > new Date(b).getTime();
+  const ta = new Date(a).getTime();
+  const tb = new Date(b).getTime();
+  // Una fecha vacia o invalida nunca gana: es lo que devuelve la nube
+  // cuando todavia no hay fila, y lo que tiene una fila local que nunca
+  // se guardo.
+  if (Number.isNaN(ta)) return false;
+  if (Number.isNaN(tb)) return true;
+  return ta > tb;
+}
+
+/**
+ * Cual de las dos configuraciones se queda.
+ *
+ * Existe porque el bug mas molesto de la app salio justo de no tener esto:
+ * bajar de la nube hacia `db.settings.put(remoto)` a ciegas. En el primer
+ * login la nube todavia no tiene fila, el repositorio devolvia valores por
+ * defecto (onboardedAt = null), eso pisaba lo local y despues se subia —
+ * asi que en CADA login volvia a pedir nombre, moneda y categorias, aunque
+ * ya se hubieran configurado.
+ *
+ * Las transacciones ya se resolvian por updatedAt; los Settings no tenian
+ * con que compararse.
+ */
+export function elegirSettings(local: Settings | undefined, remoto: Settings): Settings {
+  if (!local) return remoto;
+  return newer(remoto.updatedAt, local.updatedAt) ? remoto : local;
 }
 
 /** Aplica localmente los borrados que vienen de otro dispositivo. */
@@ -73,10 +98,15 @@ export async function pullCloudToLocal(): Promise<SyncResult> {
   const borradoPm = deletedIdsOf(todas, 'paymentMethods');
   const borradoRr = deletedIdsOf(todas, 'recurringRules');
 
+  // ponytail: categorias, metodos y reglas se pisan con lo remoto sin
+  // comparar fechas — no tienen updatedAt. Los borrados ya viajan por
+  // lapida; lo que se puede perder es un renombre hecho sin conexion.
+  // Si aparece, la solucion es la misma que la de Settings: darles
+  // updatedAt y comparar.
   await db.categories.bulkPut(categories.filter((c) => !borradoCat.has(c.id)));
   await db.paymentMethods.bulkPut(methods.filter((m) => !borradoPm.has(m.id)));
   await db.recurringRules.bulkPut(rules.filter((r) => !borradoRr.has(r.id)));
-  await db.settings.put(settings);
+  await db.settings.put(elegirSettings(await db.settings.get('singleton'), settings));
 
   const localAll = await db.transactions.toArray();
   const localById = new Map(localAll.map((t) => [t.id, t]));

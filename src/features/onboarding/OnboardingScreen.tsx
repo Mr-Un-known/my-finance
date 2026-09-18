@@ -5,6 +5,7 @@ import { CURRENCIES, currencySample } from '@/domain/money/currencies';
 import { DEFAULT_CATEGORIES } from '@/domain/seed/defaultCategories';
 import { setMoneyLocale, formatMoney } from '@/domain/money/format';
 import { haptic } from '@/lib/haptic';
+import { pedirSync } from '@/data/sync/useCloudSync';
 import type { Settings } from '@/domain/types';
 
 const PASOS = ['nombre', 'moneda', 'quincenas', 'categorias'] as const;
@@ -55,6 +56,11 @@ export function OnboardingScreen({ settings }: { settings: Settings }) {
       }
       setMoneyLocale(monedaElegida.locale, monedaElegida.code);
       haptic('medium');
+      // Subir YA. El sync automático ya hizo su push al entrar, o sea antes
+      // de que existiera esta configuración; si esperamos al próximo, con
+      // cerrar la pestaña alcanza para que nunca llegue a la nube y el
+      // siguiente dispositivo vuelva a preguntar todo.
+      pedirSync();
     } finally {
       setGuardando(false);
     }

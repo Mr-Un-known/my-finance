@@ -17,6 +17,7 @@ describe('settings round-trip', () => {
       id: 'singleton', displayName: 'Andrés', onboardedAt: '2026-09-18T10:00:00.000Z',
       currency: 'COP', locale: 'es-CO', quincenaStartDays: [10, 25],
       defaultPaymentMethodId: 'pm-1', reminderDefaultDaysBefore: 2, theme: 'dark',
+      updatedAt: '2026-09-18T12:00:00.000Z',
     };
     const row = settingsToRow(USER, settings);
     expect(settingsFromRow(row)).toEqual(settings);

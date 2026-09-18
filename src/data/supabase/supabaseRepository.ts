@@ -24,6 +24,8 @@ async function currentUserId(): Promise<string> {
 
 const DEFAULT_SETTINGS_BASE: Omit<Settings, 'id' | 'defaultPaymentMethodId'> = {
   displayName: '', onboardedAt: null,
+  // Vacio: una fila que no existe no puede ganarle a la local.
+  updatedAt: '',
   currency: 'COP', locale: 'es-CO', quincenaStartDays: [10, 25],
   reminderDefaultDaysBefore: 1, theme: 'system',
 };

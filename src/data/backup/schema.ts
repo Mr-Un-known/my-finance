@@ -13,6 +13,7 @@ export const SettingsSchema = z.object({
   // estos campos tiene que seguir importandose sin error.
   displayName: z.string().default(''),
   onboardedAt: z.string().nullable().default(null),
+  updatedAt: z.string().default(''),
   currency: z.string().min(1),
   locale: z.string().min(1),
   quincenaStartDays: z.tuple([z.number().int().min(1).max(31), z.number().int().min(1).max(31)]),

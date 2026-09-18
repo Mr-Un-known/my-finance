@@ -11,6 +11,7 @@ export interface SettingsRow {
   user_id: string; display_name: string | null; onboarded_at: string | null;
   currency: string; locale: string; quincena_start_days: number[];
   default_payment_method_id: string | null; reminder_default_days_before: number; theme: string;
+  updated_at: string;
 }
 export function settingsFromRow(row: SettingsRow): Settings {
   return {
@@ -23,6 +24,7 @@ export function settingsFromRow(row: SettingsRow): Settings {
     defaultPaymentMethodId: row.default_payment_method_id,
     reminderDefaultDaysBefore: row.reminder_default_days_before,
     theme: row.theme as Settings['theme'],
+    updatedAt: row.updated_at,
   };
 }
 export function settingsToRow(userId: string, s: Settings): SettingsRow {
@@ -33,6 +35,9 @@ export function settingsToRow(userId: string, s: Settings): SettingsRow {
     default_payment_method_id: s.defaultPaymentMethodId,
     reminder_default_days_before: s.reminderDefaultDaysBefore,
     theme: s.theme,
+    // Explicito: si no se manda, el default now() de Postgres pisa la
+    // fecha y lo remoto siempre parece mas nuevo que lo local.
+    updated_at: s.updatedAt || new Date().toISOString(),
   };
 }
 

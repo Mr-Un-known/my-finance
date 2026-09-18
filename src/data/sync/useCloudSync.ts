@@ -8,6 +8,23 @@ export type EstadoSync = 'inactivo' | 'sincronizando' | 'ok' | 'error';
 const MIN_ENTRE_SYNCS_MS = 60_000;
 
 /**
+ * Forzar una subida desde fuera del arbol de React.
+ *
+ * Hace falta porque el sync automatico solo corre al entrar, al volver a
+ * la app y al dejarla — y la configuracion inicial se completa en el
+ * medio. El push que sube los Settings pasa AL ENTRAR, o sea antes de que
+ * exista la configuracion, asi que subia onboardedAt = null; despues nada
+ * la volvia a subir hasta que el navegador disparara un visibilitychange,
+ * que al cerrar la pestaña de golpe puede no llegar nunca. Resultado: cada
+ * login en un dispositivo nuevo volvia a pedir nombre, moneda y categorias.
+ */
+let forzarSyncActual: (() => void) | null = null;
+
+export function pedirSync(): void {
+  forzarSyncActual?.();
+}
+
+/**
  * Sincroniza solo, sin que el usuario toque un boton.
  *
  * Cuando: al iniciar sesion, al volver a la app (visibilitychange) y al
@@ -51,6 +68,14 @@ export function useCloudSync() {
       setPrimeraHecha(true);
     }
   }, [userId]);
+
+  // Registrar el disparador manual mientras este hook esté montado.
+  useEffect(() => {
+    forzarSyncActual = () => void sincronizar(true);
+    return () => {
+      if (forzarSyncActual) forzarSyncActual = null;
+    };
+  }, [sincronizar]);
 
   // Al entrar la sesión: bajar todo antes de que el usuario vea nada.
   useEffect(() => {
