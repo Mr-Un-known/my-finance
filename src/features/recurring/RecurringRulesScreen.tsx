@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Screen } from '@/components/ui/Screen';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -15,11 +15,21 @@ const FREQ_LABEL: Record<RecurringRule['frequency'], string> = {
 
 export function RecurringRulesScreen() {
   const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
   const rules = useLiveQuery(() => localRepository.listRecurringRules(), []) ?? [];
   const categories = useLiveQuery(() => localRepository.listCategories(), []) ?? [];
   const paymentMethods = useLiveQuery(() => localRepository.listPaymentMethods(), []) ?? [];
   const [editing, setEditing] = useState<RecurringRule | null>(null);
   const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    if (params.get('nuevo') === '1') {
+      setCreating(true);
+      const next = new URLSearchParams(params);
+      next.delete('nuevo');
+      setParams(next, { replace: true });
+    }
+  }, [params, setParams]);
 
   async function handleSave(rule: RecurringRule) {
     await localRepository.saveRecurringRule(rule);

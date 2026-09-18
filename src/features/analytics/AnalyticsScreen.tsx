@@ -38,19 +38,23 @@ export function AnalyticsScreen() {
     return toYearlyPoints(monthly);
   }, [monthly, range]);
 
+  // Filtrar transacciones por el rango seleccionado — TODAS las cards
+  // (balance, pie, fijos/variables, débito/tarjeta) usan este filtro.
+  const rangedTransactions = useMemo(() => filterByRange(transactions, range), [transactions, range]);
+
   // Gastos por categoría (top N + "Otros")
-  const spendByCategory = useMemo(() => calculateSpendByCategory(transactions), [transactions]);
+  const spendByCategory = useMemo(() => calculateSpendByCategory(rangedTransactions), [rangedTransactions]);
   const spendTop = spendByCategory.slice(0, 7);
   const spendOtherAmount = spendByCategory.slice(7).reduce((a, c) => a + c.amount, 0);
   const spendTotal = spendByCategory.reduce((a, c) => a + c.amount, 0);
 
   // Ingresos por categoría (nuevo — hasta ahora sólo gastos)
-  const incomeByCategory = useMemo(() => calculateIncomeByCategory(transactions), [transactions]);
+  const incomeByCategory = useMemo(() => calculateIncomeByCategory(rangedTransactions), [rangedTransactions]);
   const incomeTop = incomeByCategory.slice(0, 5);
   const incomeTotal = incomeByCategory.reduce((a, c) => a + c.amount, 0);
 
-  const fixedVsVariable = useMemo(() => calculateFixedVsVariable(transactions), [transactions]);
-  const debitVsCredit = useMemo(() => calculateDebitVsCredit(transactions, creditMethodIds), [transactions, creditMethodIds]);
+  const fixedVsVariable = useMemo(() => calculateFixedVsVariable(rangedTransactions), [rangedTransactions]);
+  const debitVsCredit = useMemo(() => calculateDebitVsCredit(rangedTransactions, creditMethodIds), [rangedTransactions, creditMethodIds]);
 
   if (transactions.length === 0) {
     return (
@@ -230,7 +234,7 @@ export function AnalyticsScreen() {
         <CategoryDetailSheet
           categoryId={detailCategoryId}
           category={detailCategoryId ? categoryById.get(detailCategoryId) : null}
-          transactions={transactions.filter((t) => t.type === 'expense' && t.status !== 'cancelled' && t.categoryId === detailCategoryId)}
+          transactions={rangedTransactions.filter((t) => t.type === 'expense' && t.status !== 'cancelled' && t.categoryId === detailCategoryId)}
           totalSpend={spendTotal}
           onClose={() => setDetailCategoryId(undefined)}
         />
@@ -403,6 +407,22 @@ function StatBox({ label, value }: { label: string; value: string }) {
       <div className="figures" style={{ fontSize: 'var(--text-md)', fontWeight: 700 }}>{value}</div>
     </div>
   );
+}
+
+function filterByRange(transactions: Transaction[], range: Range): Transaction[] {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth(); // 0-based
+  let fromISO: string;
+  if (range === 'mes') {
+    fromISO = new Date(y, m, 1).toISOString().slice(0, 10);
+  } else if (range === 'trimestre') {
+    const qStartMonth = m - (m % 3);
+    fromISO = new Date(y, qStartMonth, 1).toISOString().slice(0, 10);
+  } else {
+    fromISO = new Date(y, 0, 1).toISOString().slice(0, 10);
+  }
+  return transactions.filter((t) => t.date >= fromISO);
 }
 
 function calculateIncomeByCategory(transactions: Transaction[]): Array<{ categoryId: string | null; amount: number; count: number }> {

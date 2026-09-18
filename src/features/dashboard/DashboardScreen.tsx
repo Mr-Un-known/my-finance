@@ -16,6 +16,9 @@ import { todayISO } from '@/lib/todayISO';
 import { selectUpcoming, relevantDate } from './upcoming';
 import { AnimatedNumber } from './AnimatedNumber';
 import { PorPagarSheet } from './PorPagarSheet';
+import { nowISO } from '@/lib/todayISO';
+import { haptic } from '@/lib/haptic';
+import type { Transaction } from '@/domain/types';
 
 const MONTH_NAMES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -76,6 +79,15 @@ export function DashboardScreen() {
     } finally {
       setLoadingDemo(false);
     }
+  }
+
+  async function toggleTxPaid(tx: Transaction) {
+    haptic('medium');
+    await localRepository.saveTransaction({
+      ...tx,
+      status: tx.status === 'paid' ? 'pending' : 'paid',
+      updatedAt: nowISO(),
+    });
   }
 
   if (transactions.length === 0) {
@@ -206,26 +218,52 @@ export function DashboardScreen() {
           {upcoming.map((tx, idx) => {
             const cat = tx.categoryId ? categoryById.get(tx.categoryId) : undefined;
             const { day, month: monthLabel } = formatShortDate(relevantDate(tx));
+            const isPaid = tx.status === 'paid';
             return (
               <div
                 key={tx.id}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 12,
-                  padding: '12px 14px',
+                  gap: 10,
+                  padding: '10px 12px',
                   borderBottom: idx < upcoming.length - 1 ? '1px solid var(--line)' : 'none',
                 }}
               >
-                <span aria-hidden style={{ fontSize: 22, width: 32, textAlign: 'center' }}>{cat?.icon ?? '✳️'}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 'var(--text-md)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {tx.concept}
+                <button
+                  type="button"
+                  onClick={() => toggleTxPaid(tx)}
+                  aria-pressed={isPaid}
+                  aria-label={isPaid ? 'Marcar como pendiente' : 'Marcar como pagado'}
+                  style={{
+                    width: 28, height: 28, minWidth: 28, borderRadius: 14, flex: 'none',
+                    border: `1.5px solid ${isPaid ? 'var(--positive)' : 'var(--line-strong)'}`,
+                    background: isPaid ? 'var(--positive)' : 'transparent',
+                    color: isPaid ? '#fff' : 'transparent',
+                    display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: 14,
+                    transition: 'all var(--dur-fast) var(--ease-spring-out)',
+                  }}
+                >
+                  ✓
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/movimientos')}
+                  style={{
+                    flex: 1, minWidth: 0, textAlign: 'left', background: 'none', border: 'none',
+                    padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text)',
+                  }}
+                >
+                  <span aria-hidden style={{ fontSize: 22, width: 28, textAlign: 'center', flex: 'none' }}>{cat?.icon ?? '✳️'}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 'var(--text-md)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {tx.concept}
+                    </div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                      {day} {monthLabel}
+                    </div>
                   </div>
-                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                    {day} {monthLabel}
-                  </div>
-                </div>
+                </button>
                 <span className="figures" style={{ fontWeight: 600, fontSize: 'var(--text-md)' }}>
                   {formatMoney(tx.amount)}
                 </span>

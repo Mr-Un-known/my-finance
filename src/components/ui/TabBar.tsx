@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { haptic } from '@/lib/haptic';
 
@@ -13,6 +13,30 @@ const TABS = [
 export function TabBar() {
   const navigate = useNavigate();
   const [longPressOpen, setLongPressOpen] = useState(false);
+  const [fabHidden, setFabHidden] = useState(false);
+
+  // FAB se esconde al scrollear hacia abajo, aparece al scrollear hacia
+  // arriba. Umbral pequeño para evitar flicker con micro-scrolls.
+  useEffect(() => {
+    let lastY = window.scrollY;
+    let ticking = false;
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const y = window.scrollY;
+        const delta = y - lastY;
+        if (Math.abs(delta) > 6) {
+          if (delta > 0 && y > 40) setFabHidden(true);
+          else setFabHidden(false);
+          lastY = y;
+        }
+        ticking = false;
+      });
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   return (
     <>
@@ -37,12 +61,9 @@ export function TabBar() {
           <div key={tab.to} style={{ display: 'contents' }}>
             {i === 2 && (
               <AddButton
+                hidden={fabHidden}
                 onClick={() => {
                   haptic('light');
-                  navigate('/movimientos?nuevo=1');
-                }}
-                onLongPress={() => {
-                  haptic('medium');
                   setLongPressOpen(true);
                 }}
               />
@@ -102,50 +123,22 @@ export function TabBar() {
  * dentro — con bottom pequeño se comía la pestaña central (Calendario).
  * Long-press abre menú rápido con Gasto/Ingreso/Recurrente.
  */
-function AddButton({ onClick, onLongPress }: { onClick: () => void; onLongPress: () => void }) {
-  const timerRef = useRef<number | null>(null);
-  const firedLongRef = useRef(false);
+function AddButton({ onClick, hidden }: { onClick: () => void; hidden?: boolean }) {
   const [pressed, setPressed] = useState(false);
-
-  function start() {
-    firedLongRef.current = false;
-    setPressed(true);
-    timerRef.current = window.setTimeout(() => {
-      firedLongRef.current = true;
-      onLongPress();
-    }, 500);
-  }
-
-  function cancel() {
-    setPressed(false);
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-  }
-
-  function end() {
-    cancel();
-    if (!firedLongRef.current) onClick();
-  }
-
   return (
     <button
       type="button"
       aria-label="Agregar movimiento"
-      onPointerDown={start}
-      onPointerUp={end}
-      onPointerLeave={cancel}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        if (timerRef.current) clearTimeout(timerRef.current);
-        onLongPress();
-      }}
+      onPointerDown={() => setPressed(true)}
+      onPointerUp={() => { setPressed(false); onClick(); }}
+      onPointerLeave={() => setPressed(false)}
       style={{
         position: 'absolute',
         left: '50%',
         bottom: 'calc(100% + 12px)',
-        transform: `translateX(-50%) scale(${pressed ? 0.94 : 1})`,
+        transform: `translateX(-50%) scale(${hidden ? 0 : pressed ? 0.94 : 1})`,
+        opacity: hidden ? 0 : 1,
+        pointerEvents: hidden ? 'none' : 'auto',
         width: 56,
         height: 56,
         borderRadius: 28,
@@ -157,7 +150,7 @@ function AddButton({ onClick, onLongPress }: { onClick: () => void; onLongPress:
         lineHeight: 1,
         cursor: 'pointer',
         boxShadow: 'var(--shadow-3)',
-        transition: 'transform var(--dur-fast) var(--ease-spring-out)',
+        transition: 'transform var(--dur-med) var(--ease-spring-out), opacity var(--dur-med) var(--ease-spring-out)',
         touchAction: 'none',
       }}
     >
