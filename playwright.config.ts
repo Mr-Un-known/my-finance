@@ -14,7 +14,8 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   webServer: {
-    command: 'npm run build && npm run preview -- --port 4173',
+    // Fuerza modo 100% local para E2E — sin AuthGate delante del dashboard.
+    command: 'VITE_SUPABASE_URL= VITE_SUPABASE_ANON_KEY= npm run build && npm run preview -- --port 4173',
     url: BASE,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

@@ -13,9 +13,9 @@ test('crear un gasto recurrente (fijo) y ver su instancia en movimientos', async
   await dialog.getByRole('button', { name: 'Guardar' }).click();
   await expect(dialog).toBeHidden();
 
-  await expect(page.getByText('Gimnasio E2E')).toBeVisible();
+  await expect(page.getByText('Gimnasio E2E').first()).toBeVisible();
 
   // La regla se materializa en una instancia real al guardarla.
   await page.goto('movimientos');
-  await expect(page.getByText('Gimnasio E2E')).toBeVisible();
+  await expect(page.getByText('Gimnasio E2E').first()).toBeVisible();
 });

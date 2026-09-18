@@ -22,6 +22,6 @@ test('editar un gasto existente', async ({ page }) => {
   await editDialog.getByRole('button', { name: 'Guardar' }).click();
 
   await expect(editDialog).toBeHidden();
-  await expect(page.getByText('$ 99.000')).toBeVisible();
+  await expect(page.getByText('$ 99.000').first()).toBeVisible();
   await expect(page.getByText('$ 10.000')).not.toBeVisible();
 });

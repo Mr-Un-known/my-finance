@@ -12,5 +12,5 @@ test('ver la fecha de pago de una compra con TC en la pantalla de tarjeta', asyn
   await page.goto('tarjeta');
   await expect(page.getByText(/Se paga el/)).toBeVisible();
   await expect(page.getByText('Zapatos')).toBeVisible();
-  await expect(page.getByText('$ 210.000')).toBeVisible();
+  await expect(page.getByText('$ 210.000').first()).toBeVisible();
 });

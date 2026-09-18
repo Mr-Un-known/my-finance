@@ -14,5 +14,5 @@ test('crear un gasto', async ({ page }) => {
 
   await expect(dialog).toBeHidden();
   await expect(page.getByText('Mercado de prueba')).toBeVisible();
-  await expect(page.getByText('$ 85.000')).toBeVisible();
+  await expect(page.getByText('$ 85.000').first()).toBeVisible();
 });
