@@ -37,3 +37,10 @@ button { font: inherit; color: inherit; }
     transition-duration: 0.01ms !important;
   }
 }
+
+/* El FAB de "Agregar movimiento" se esconde cuando hay un modal abierto —
+   si no, tocarlo por accidente cierra el modal (ej. estás llenando un
+   recurrente y perdés todo). Requiere :has() → iOS 15.4+ / Safari 15.4+. */
+body:has([role="dialog"]) button[aria-label="Agregar movimiento"] {
+  display: none;
+}

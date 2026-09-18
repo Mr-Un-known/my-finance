@@ -7,7 +7,6 @@ import { db } from '@/data/db';
 import { localRepository, DEFAULT_SETTINGS } from '@/data/local/localRepository';
 import { seedDemoTransactions } from '@/data/local/demoData';
 import { formatMoney } from '@/domain/money/format';
-import { calculateAvailableBalance } from '@/domain/totals/available';
 import { calculateMonthBalance } from '@/domain/quincena/balance';
 import { quincenaKey } from '@/domain/quincena/quincena';
 import { withResolvedQuincena } from '@/domain/quincena/resolve';
@@ -45,7 +44,6 @@ export function DashboardScreen() {
   );
 
   const monthBalance = useMemo(() => calculateMonthBalance(resolved, year, month), [resolved, year, month]);
-  const available = useMemo(() => calculateAvailableBalance(monthTransactions), [monthTransactions]);
 
   const pendientes = monthTransactions.filter((t) => t.type === 'expense' && t.status === 'pending');
   const programados = monthTransactions.filter((t) => t.type === 'expense' && t.status === 'scheduled');
@@ -78,28 +76,18 @@ export function DashboardScreen() {
 
   return (
     <Screen title="Inicio" subtitle={`${MONTH_NAMES[month - 1]} ${year}`}>
-      {/* Libre real: el numero grande */}
+      {/* Sobrante del mes: el numero grande. Ingresos totales - gastos totales, sin filtrar por status. */}
       <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--radius-l)', padding: '18px 18px 16px', marginBottom: 12 }}>
-        <p style={{ margin: '0 0 4px', fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>Libre real</p>
-        <p className="figures" style={{ margin: 0, fontSize: 34, fontWeight: 700, color: available.libreReal >= 0 ? 'var(--text)' : 'var(--danger)' }}>
-          {formatMoney(available.libreReal)}
+        <p style={{ margin: '0 0 4px', fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>Sobrante del mes</p>
+        <p className="figures" style={{ margin: 0, fontSize: 34, fontWeight: 700, color: monthBalance.sobrante >= 0 ? 'var(--text)' : 'var(--danger)' }}>
+          {formatMoney(monthBalance.sobrante)}
         </p>
-        <div style={{ display: 'flex', gap: 18, marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
-          <Stat label="Disponible" value={available.disponible} tone="positive" />
-          <Stat label="Comprometido" value={available.comprometido} tone="committed" />
-        </div>
       </div>
 
       {/* Dos quincenas */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
         <QuincenaCard label="Quincena del" day={settings.quincenaStartDays[0]} restante={monthBalance.quincenas[0].restante} colorVar="--q10" softVar="--q10-soft" />
         <QuincenaCard label="Quincena del" day={settings.quincenaStartDays[1]} restante={monthBalance.quincenas[1].restante} colorVar="--q25" softVar="--q25-soft" />
-      </div>
-
-      {/* Sobrante del mes */}
-      <div style={{ background: 'var(--surface-sunken)', borderRadius: 'var(--radius-m)', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 20 }}>
-        <span style={{ color: 'var(--text-muted)' }}>Sobrante del mes</span>
-        <span className="figures" style={{ fontSize: 22, fontWeight: 700 }}>{formatMoney(monthBalance.sobrante)}</span>
       </div>
 
       {/* Chips de estado */}
@@ -143,15 +131,6 @@ export function DashboardScreen() {
 
 function sum(txs: { amount: number }[]): number {
   return txs.reduce((acc, t) => acc + t.amount, 0);
-}
-
-function Stat({ label, value, tone }: { label: string; value: number; tone: 'positive' | 'committed' }) {
-  return (
-    <div style={{ flex: 1 }}>
-      <p style={{ margin: 0, fontSize: 11, color: 'var(--text-muted)' }}>{label}</p>
-      <p className="figures" style={{ margin: 0, fontWeight: 700, color: `var(--${tone})` }}>{formatMoney(value)}</p>
-    </div>
-  );
 }
 
 function QuincenaCard({ label, day, restante, colorVar, softVar }: {

@@ -12,7 +12,7 @@ export function relevantDate(tx: Transaction): string {
 
 export function selectUpcoming(transactions: Transaction[], limit = 5): Transaction[] {
   return transactions
-    .filter((t) => t.status === 'pending' || t.status === 'scheduled')
+    .filter((t) => t.type === 'expense' && (t.status === 'pending' || t.status === 'scheduled'))
     .slice()
     .sort((a, b) => compareISO(relevantDate(a), relevantDate(b)))
     .slice(0, limit);
