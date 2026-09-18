@@ -13,6 +13,52 @@ export interface PeriodPoint {
 
 const MONTH_ABBR = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
+/**
+ * Corta la serie en el mes actual: el grafico se llama "historico" y estaba
+ * mostrando el futuro.
+ *
+ * No es un caso raro. Las reglas recurrentes se materializan por adelantado
+ * (y ahora tambien al navegar a un mes lejano), asi que en la base hay
+ * transacciones de 2027 aunque estemos en 2026. Como el grafico tomaba los
+ * ULTIMOS seis meses de todo lo que existe, los ultimos seis eran los del
+ * futuro: el "historico" mostraba meses que todavia no pasaron, y el mes en
+ * curso ni aparecia.
+ */
+export function hastaHoy(points: MonthPoint[], hoy: string): MonthPoint[] {
+  const [y, m] = hoy.split('-').map(Number) as [number, number];
+  const tope = y * 12 + m;
+  return points.filter((p) => p.year * 12 + p.month <= tope);
+}
+
+/**
+ * Rellena con ceros los meses sin movimientos que quedan ENTRE dos que si
+ * tienen. Sin esto, un mes en blanco simplemente desaparecia y las barras
+ * vecinas quedaban pegadas, como si el tiempo no hubiera pasado.
+ *
+ * A proposito no rellena ANTES del primer mes con datos: inventar ceros
+ * previos a que la persona empezara a usar la app diria "no gastaste nada",
+ * que es distinto de "todavia no estabas".
+ */
+export function rellenarHuecos(points: MonthPoint[]): MonthPoint[] {
+  if (points.length < 2) return points;
+  const ordenados = [...points].sort((a, b) => a.year * 12 + a.month - (b.year * 12 + b.month));
+  const porClave = new Map(ordenados.map((p) => [p.year * 12 + p.month, p]));
+
+  const primero = ordenados[0]!;
+  const ultimo = ordenados[ordenados.length - 1]!;
+  const salida: MonthPoint[] = [];
+  for (let n = primero.year * 12 + primero.month; n <= ultimo.year * 12 + ultimo.month; n++) {
+    const existente = porClave.get(n);
+    if (existente) {
+      salida.push(existente);
+    } else {
+      const year = Math.floor((n - 1) / 12);
+      salida.push({ year, month: n - year * 12, income: 0, expense: 0 });
+    }
+  }
+  return salida;
+}
+
 export function toMonthlyPoints(points: MonthPoint[]): PeriodPoint[] {
   return points.map((p) => ({
     label: `${MONTH_ABBR[p.month - 1]} ${String(p.year).slice(2)}`,

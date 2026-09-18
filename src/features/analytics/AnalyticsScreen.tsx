@@ -11,7 +11,7 @@ import { formatCompact, formatMoney } from '@/domain/money/format';
 import { calculateDebitVsCredit, calculateFixedVsVariable, monthlySeries } from '@/domain/analytics/series';
 import { calculateSpendByCategory } from '@/domain/totals/byCategory';
 import { categoryColor, COLOR_SIN_CATEGORIA } from '@/domain/seed/categoryColor';
-import { filterByRange, rangeBounds, toMonthlyPoints, toQuarterlyPoints, toYearlyPoints, type PeriodPoint, type Range } from './periodAggregate';
+import { filterByRange, hastaHoy, rangeBounds, rellenarHuecos, toMonthlyPoints, toQuarterlyPoints, toYearlyPoints, type PeriodPoint, type Range } from './periodAggregate';
 import type { Transaction, Category } from '@/domain/types';
 import { todayISO } from '@/lib/todayISO';
 import { VACIO } from '@/lib/vacio';
@@ -32,7 +32,13 @@ export function AnalyticsScreen() {
     [paymentMethods],
   );
 
-  const monthly = useMemo(() => monthlySeries(transactions), [transactions]);
+  // "Histórico" significa hasta hoy: se corta el futuro y se rellenan los
+  // meses vacíos que queden en el medio, para que el eje no mienta sobre
+  // cuánto tiempo pasó entre una barra y la siguiente.
+  const monthly = useMemo(
+    () => rellenarHuecos(hastaHoy(monthlySeries(transactions), todayISO())),
+    [transactions],
+  );
   const points: PeriodPoint[] = useMemo(() => {
     if (range === 'mes') return toMonthlyPoints(monthly).slice(-6);
     if (range === 'trimestre') return toQuarterlyPoints(monthly).slice(-4);
@@ -204,7 +210,7 @@ export function AnalyticsScreen() {
         </p>
       </ChartCard>
 
-      <ChartCard title="Ingresos vs. gastos (histórico)">
+      <ChartCard title="Ingresos vs. gastos (hasta hoy)">
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={points} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
