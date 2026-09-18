@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { filterByRange, hastaHoy, rangeBounds, rellenarHuecos, toMonthlyPoints, toQuarterlyPoints, toYearlyPoints, type Range } from './periodAggregate';
 import type { Transaction } from '@/domain/types';
 import type { MonthPoint } from '@/domain/analytics/series';
+import { todayISO } from '@/lib/todayISO';
 
 describe('toQuarterlyPoints', () => {
   it('agrupa meses en su trimestre correcto', () => {
@@ -105,5 +106,59 @@ describe('hastaHoy + rellenarHuecos — el "histórico" no muestra el futuro', (
 
   it('un solo punto se deja tal cual', () => {
     expect(rellenarHuecos([p(2026, 9)])).toEqual([p(2026, 9)]);
+  });
+});
+
+/**
+ * La app tiene que envejecer sola. Este test mueve el reloj del sistema a
+ * años futuros y comprueba que el corte sigue al reloj, no a una fecha
+ * escrita en el código: en 2029 el eje termina en 2029, no en 2026.
+ */
+describe('el corte sigue al reloj del sistema, año tras año', () => {
+  afterEach(() => vi.useRealTimers());
+
+  // Una serie larga: un movimiento cada trimestre durante seis años.
+  const serieLarga = Array.from({ length: 6 * 12 }, (_, i) => ({
+    year: 2026 + Math.floor(i / 12),
+    month: (i % 12) + 1,
+    income: 1000,
+    expense: 500,
+  }));
+
+  const casos = [
+    { hoy: '2026-09-18', mes: 'Sep 26', trimestre: 'T3 26', ultimoAño: '2026' },
+    { hoy: '2027-01-02', mes: 'Ene 27', trimestre: 'T1 27', ultimoAño: '2027' },
+    { hoy: '2029-12-31', mes: 'Dic 29', trimestre: 'T4 29', ultimoAño: '2029' },
+    { hoy: '2031-06-05', mes: 'Jun 31', trimestre: 'T2 31', ultimoAño: '2031' },
+  ];
+
+  for (const caso of casos) {
+    it(`el ${caso.hoy} el eje termina en ${caso.mes}`, () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(`${caso.hoy}T12:00:00`));
+
+      // Exactamente lo que hace AnalyticsScreen, pero leyendo el reloj.
+      const visible = rellenarHuecos(hastaHoy(serieLarga, todayISO()));
+
+      expect(toMonthlyPoints(visible).slice(-6).at(-1)?.label).toBe(caso.mes);
+      expect(toQuarterlyPoints(visible).slice(-4).at(-1)?.label).toBe(caso.trimestre);
+      expect(toYearlyPoints(visible).at(-1)?.label).toBe(caso.ultimoAño);
+
+      // Y nada posterior a hoy se cuela por ningún lado.
+      const añoActual = Number(caso.hoy.slice(0, 4));
+      expect(visible.every((p) => p.year <= añoActual)).toBe(true);
+    });
+  }
+
+  it('la ventana de 6 meses se mueve con el tiempo, no se queda pegada', () => {
+    const etiquetas = (hoy: string) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(`${hoy}T12:00:00`));
+      const r = toMonthlyPoints(rellenarHuecos(hastaHoy(serieLarga, todayISO()))).slice(-6).map((x) => x.label);
+      vi.useRealTimers();
+      return r;
+    };
+    expect(etiquetas('2026-09-18')).toEqual(['Abr 26', 'May 26', 'Jun 26', 'Jul 26', 'Ago 26', 'Sep 26']);
+    expect(etiquetas('2027-02-10')).toEqual(['Sep 26', 'Oct 26', 'Nov 26', 'Dic 26', 'Ene 27', 'Feb 27']);
   });
 });
