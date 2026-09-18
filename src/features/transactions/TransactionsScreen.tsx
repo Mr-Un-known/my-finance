@@ -261,27 +261,31 @@ export function TransactionsScreen() {
         />
       )}
 
-      {/* Resumen del mes visible — contexto antes de la lista. */}
+      {/* Resumen del mes visible — contexto antes de la lista.
+          En dos lineas y no una: a lo ancho de un iPhone, el conteo, los dos
+          montos y el boton no caben juntos — "8 movimientos" se partia en
+          dos y los numeros quedaban apretados contra el borde. */}
       {!searching && transactions.length > 0 && (
         <div
           style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             padding: '10px 14px', marginBottom: 'var(--gap-m)',
             background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--radius-m)',
           }}
         >
-          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
-            {monthTotal.count} movimiento{monthTotal.count !== 1 ? 's' : ''}
-          </span>
-          <span style={{ display: 'flex', gap: 12, alignItems: 'center', fontSize: 'var(--text-sm)', fontWeight: 700 }}>
-            <span className="figures" style={{ color: 'var(--positive-text)' }}>+ {formatMoney(monthTotal.income)}</span>
-            <span className="figures" style={{ color: 'var(--danger-text)' }}>− {formatMoney(monthTotal.expense)}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
+              {monthTotal.count} movimiento{monthTotal.count !== 1 ? 's' : ''}
+            </span>
             {!enSeleccion && (
               <button type="button" onClick={() => setSeleccion(new Set())} style={botonTexto}>
                 Seleccionar
               </button>
             )}
-          </span>
+          </div>
+          <div style={{ display: 'flex', gap: 14, fontSize: 'var(--text-md)', fontWeight: 700, marginTop: 2 }}>
+            <span className="figures" style={{ color: 'var(--positive-text)' }}>+ {formatMoney(monthTotal.income)}</span>
+            <span className="figures" style={{ color: 'var(--danger-text)' }}>− {formatMoney(monthTotal.expense)}</span>
+          </div>
         </div>
       )}
 
