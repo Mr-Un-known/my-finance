@@ -61,15 +61,52 @@ export function AutomationSection() {
 
       {token ? (
         <div style={{ background: 'var(--positive-soft)', border: '1px solid var(--positive)', borderRadius: 'var(--radius-s)', padding: '12px 14px', marginBottom: 10 }}>
-          <p style={{ margin: '0 0 6px', fontSize: 'var(--text-sm)', fontWeight: 700 }}>
-            Cópiala ahora: no se vuelve a mostrar.
+          <p style={{ margin: '0 0 8px', fontSize: 'var(--text-sm)', fontWeight: 700 }}>
+            Cópialo ahora: no se vuelve a mostrar.
           </p>
-          <code style={{ display: 'block', fontSize: 12, wordBreak: 'break-all', marginBottom: 8, color: 'var(--text)' }}>
-            {token}
+
+          {/* Lo que de verdad hace falta pegar: la dirección con la clave
+              adentro. Un solo copiar, y en el Atajo solo queda arrastrar la
+              variable del mensaje al final. */}
+          <p style={{ margin: '0 0 4px', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)' }}>
+            Para el Atajo del SMS
+          </p>
+          <code style={{ display: 'block', fontSize: 11, wordBreak: 'break-all', marginBottom: 6, color: 'var(--text)' }}>
+            {`${urlIngesta()}?origen=sms&token=${token}&texto=`}
           </code>
-          <button type="button" onClick={() => copiar(token, 'token')} style={btn}>
-            {copiado === 'token' ? 'Copiada ✓' : 'Copiar clave'}
+          <button
+            type="button"
+            onClick={() => copiar(`${urlIngesta()}?origen=sms&token=${token}&texto=`, 'sms')}
+            style={{ ...btn, marginBottom: 10 }}
+          >
+            {copiado === 'sms' ? 'Copiada ✓' : 'Copiar dirección del SMS'}
           </button>
+
+          <p style={{ margin: '0 0 4px', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)' }}>
+            Para el Atajo de dictado
+          </p>
+          <code style={{ display: 'block', fontSize: 11, wordBreak: 'break-all', marginBottom: 6, color: 'var(--text)' }}>
+            {`${urlIngesta()}?origen=dictado&token=${token}&texto=`}
+          </code>
+          <button
+            type="button"
+            onClick={() => copiar(`${urlIngesta()}?origen=dictado&token=${token}&texto=`, 'dictado')}
+            style={{ ...btn, marginBottom: 10 }}
+          >
+            {copiado === 'dictado' ? 'Copiada ✓' : 'Copiar dirección del dictado'}
+          </button>
+
+          <details>
+            <summary style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', cursor: 'pointer' }}>
+              Ver solo la clave
+            </summary>
+            <code style={{ display: 'block', fontSize: 11, wordBreak: 'break-all', margin: '6px 0', color: 'var(--text-muted)' }}>
+              {token}
+            </code>
+            <button type="button" onClick={() => copiar(token, 'token')} style={btn}>
+              {copiado === 'token' ? 'Copiada ✓' : 'Copiar clave sola'}
+            </button>
+          </details>
         </div>
       ) : (
         <button type="button" onClick={generar} disabled={ocupado} style={{ ...btn, width: '100%', marginBottom: 10 }}>
@@ -84,18 +121,11 @@ export function AutomationSection() {
         </p>
       )}
 
-      <p style={{ margin: '0 0 6px', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-        Dirección para el Atajo
-      </p>
-      <code style={{ display: 'block', fontSize: 12, wordBreak: 'break-all', color: 'var(--text-muted)', marginBottom: 8 }}>
-        {urlIngesta()}
-      </code>
-      <button type="button" onClick={() => copiar(urlIngesta(), 'url')} style={btn}>
-        {copiado === 'url' ? 'Copiada ✓' : 'Copiar dirección'}
-      </button>
-
       <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-faint)', margin: '10px 0 0', lineHeight: 'var(--lh-normal)' }}>
-        El paso a paso del Atajo está en docs/ATAJOS_IOS.md.
+        En el Atajo: una acción <strong>Obtener contenido de la URL</strong>,
+        pegas la dirección de arriba y arrastras al final la variable del
+        mensaje. Nada más: ni método, ni cuerpo, ni campos JSON.
+        El paso a paso completo está en docs/ATAJOS_IOS.md.
       </p>
 
       {error && <p style={{ color: 'var(--danger)', fontSize: 'var(--text-sm)', marginTop: 8 }}>{error}</p>}

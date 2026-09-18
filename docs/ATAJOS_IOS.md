@@ -100,9 +100,10 @@ trasera** (Ajustes → Accesibilidad → Tocar → Toque en la parte trasera).
 > app** tiene micrófono. Ahí no hace falta Atajos.
 
 **Variante que abre la app instalada** (en vez de Safari): en lugar de
-*Abrir URLs*, usa **Obtener contenido de la URL** contra la dirección de
-Ajustes —igual que el Atajo 2, pero con `origen` en `dictado`— y después
-**Abrir app** → *My Finance*.
+*Abrir URLs*, usa **Obtener contenido de la URL** con la dirección de
+dictado que copiaste de Ajustes, arrastrando al final la variable *Texto
+dictado*. Después agrega **Abrir app** → *My Finance*. El movimiento ya
+está esperándote en la bandeja.
 
 ---
 
@@ -126,9 +127,13 @@ del panel de Supabase.
 4. Baja hasta **Automatizaciones (Atajos)** — queda debajo de *Tu cuenta*.
 5. Toca **Generar clave**.
 
-Se muestra **una sola vez**: cópiala y pégala en el Atajo antes de salir de
-ahí. Justo debajo aparece la dirección (`…/functions/v1/ingest`) con su
-propio botón de copiar; esa es la que va en el campo URL del Atajo.
+Se muestra **una sola vez**. No copies solo la clave: copia la
+**dirección completa**, que ya la trae adentro y termina en `&texto=`.
+Hay un botón para cada Atajo (SMS y dictado).
+
+```
+https://…/functions/v1/ingest?origen=sms&token=mf_TU_CLAVE&texto=
+```
 
 Esa clave sirve **solo** para dejar texto en tu bandeja: no lee tus
 movimientos, no lee tu configuración, no borra nada. Si se te filtra, lo
@@ -143,15 +148,11 @@ ver antes de confirmar. Generar una nueva anula la anterior.
    `Recibiste`).
 3. Acciones:
    - **Obtener texto del input** (el cuerpo del mensaje).
-   - **Obtener contenido de la URL**, con:
-     - URL: la dirección que copiaste de Ajustes
-     - Método: **POST**
-     - Cuerpo de la solicitud: **JSON**
-       | Campo | Valor |
-       |---|---|
-       | `token` | tu clave |
-       | `texto` | la variable *Texto* del paso anterior |
-       | `origen` | `sms` |
+   - **Obtener contenido de la URL**: pega la dirección que copiaste y
+     **arrastra al final la variable *Texto*** del paso anterior.
+
+     Eso es todo: no toques método, ni cuerpo, ni campos JSON. La acción
+     viene en GET por defecto y así está bien.
 4. Activa **Ejecutar inmediatamente**.
 
 Listo. El Atajo no abre nada. La próxima vez que abras la app te aparece
@@ -182,6 +183,29 @@ bandeja.
 
 Si *My Finance* no aparece en la lista, es que todavía no la instalaste:
 Safari → **Compartir** → **Agregar a inicio**.
+
+## ¿Y no hay un enlace que instale el Atajo solo?
+
+Corto: no del todo, y conviene saber por qué antes de buscarlo.
+
+- **Los enlaces de iCloud** (`icloud.com/shortcuts/…`) los genera la app
+  Atajos desde un dispositivo con sesión de iCloud. No se pueden fabricar
+  desde afuera.
+- **Un archivo `.shortcut`** sí se puede fabricar, pero iOS solo importa
+  los que no vienen firmados por Apple si activas *Atajos no fiables*, y
+  eso cambia según la versión de iOS. No tengo un iPhone para probarlo, así
+  que no te voy a mandar un archivo diciendo que funciona sin haberlo
+  visto funcionar.
+- **Las automatizaciones personales** (la del SMS) **no se pueden compartir
+  ni importar**, punto. Es una decisión de Apple: un atajo que se dispara
+  solo al recibir un mensaje tiene que armarlo el dueño del teléfono. Ni
+  yo ni nadie puede mandártela hecha.
+
+Por eso el esfuerzo se fue a que armarlo a mano sea corto: la app te da la
+dirección **ya con tu clave adentro**, y en el Atajo queda una sola acción
+con una sola pegada.
+
+---
 
 ## Atajo 3 — Gasto fijo de un toque
 

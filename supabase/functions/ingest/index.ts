@@ -43,24 +43,43 @@ function responder(status: number, cuerpo: Record<string, unknown>): Response {
   });
 }
 
+/**
+ * Acepta GET con parámetros y POST con JSON.
+ *
+ * El GET existe para que armar el Atajo sea una sola pegada: en
+ * "Obtener contenido de la URL" el usuario pega UNA dirección y arrastra
+ * la variable al final, sin tocar método ni cuerpo ni campos JSON. Que la
+ * clave viaje en la URL es aceptable acá porque solo sirve para agregar
+ * texto a la bandeja de su dueño: no lee nada ni borra nada.
+ */
 Deno.serve(async (req) => {
-  if (req.method !== 'POST') return responder(405, { error: 'Usá POST.' });
+  let datos: { token?: string; texto?: string; origen?: string } = {};
 
-  let cuerpo: { token?: string; texto?: string; origen?: string };
-  try {
-    cuerpo = await req.json();
-  } catch {
-    return responder(400, { error: 'Cuerpo inválido: se esperaba JSON.' });
+  if (req.method === 'GET') {
+    const url = new URL(req.url);
+    datos = {
+      token: url.searchParams.get('token') ?? undefined,
+      texto: url.searchParams.get('texto') ?? undefined,
+      origen: url.searchParams.get('origen') ?? undefined,
+    };
+  } else if (req.method === 'POST') {
+    try {
+      datos = await req.json();
+    } catch {
+      return responder(400, { error: 'Cuerpo inválido: se esperaba JSON.' });
+    }
+  } else {
+    return responder(405, { error: 'Usa GET o POST.' });
   }
 
-  const token = (cuerpo.token ?? '').trim();
-  const texto = (cuerpo.texto ?? '').trim();
+  const token = (datos.token ?? '').trim();
+  const texto = (datos.texto ?? '').trim();
 
   if (!token) return responder(401, { error: 'Falta el token.' });
   if (!texto) return responder(400, { error: 'Falta el texto.' });
   if (texto.length > 2000) return responder(400, { error: 'El texto es demasiado largo.' });
 
-  const origen = ORIGENES.has(cuerpo.origen ?? '') ? cuerpo.origen! : 'atajo';
+  const origen = ORIGENES.has(datos.origen ?? '') ? datos.origen! : 'atajo';
 
   const { data: fila, error: errToken } = await admin
     .from('ingest_tokens')
