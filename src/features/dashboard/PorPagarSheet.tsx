@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useDialogo } from '@/components/ui/useDialogo';
 import { useNavigate } from 'react-router-dom';
 import type { Transaction } from '@/domain/types';
 import type { PorPagar } from '@/domain/totals/porPagar';
@@ -27,8 +28,10 @@ export function PorPagarSheet({
   const total = porPagar.count;
   const totalAmount = porPagar.monto;
 
+  const refDialogo = useDialogo(onClose);
   return (
     <div
+      ref={refDialogo}
       role="dialog"
       aria-label="Por pagar — desglose"
       onClick={onClose}

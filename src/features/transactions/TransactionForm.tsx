@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useDialogo } from '@/components/ui/useDialogo';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { calculateCreditCardCycle } from '@/domain/credit-card/cycle';
 import { formatMoney, parseMoney } from '@/domain/money/format';
@@ -195,8 +196,10 @@ export function TransactionForm({
     ? isIncome ? 'Editar ingreso' : 'Editar gasto'
     : isIncome ? 'Nuevo ingreso' : 'Nuevo gasto';
 
+  const refDialogo = useDialogo(onCancel);
   return (
     <div
+      ref={refDialogo}
       role="dialog"
       aria-label={existing ? 'Editar movimiento' : 'Agregar movimiento'}
       style={{

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useDialogo } from '@/components/ui/useDialogo';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { QuickEntrySheet } from '@/features/quick/QuickEntrySheet';
 import { haptic } from '@/lib/haptic';
@@ -148,8 +149,14 @@ function AddButton({ onClick, hidden }: { onClick: () => void; hidden?: boolean 
     <button
       type="button"
       aria-label="Agregar movimiento"
+      // La acción va en onClick, no en onPointerUp. Los eventos de puntero
+      // solo llegan con dedo o ratón: con el teclado (Enter/Espacio) y con
+      // VoiceOver —que activa mandando un click— este botón no hacía
+      // absolutamente nada, y es el botón principal de la app. Los pointer
+      // se quedan solo con el efecto visual de hundido.
+      onClick={onClick}
       onPointerDown={() => setPressed(true)}
-      onPointerUp={() => { setPressed(false); onClick(); }}
+      onPointerUp={() => setPressed(false)}
       onPointerLeave={() => setPressed(false)}
       style={{
         position: 'absolute',
@@ -185,8 +192,11 @@ function QuickActionSheet({
   onClose: () => void;
   onSelect: (action: 'hablar' | 'gasto' | 'ingreso' | 'recurrente') => void;
 }) {
+
+  const refDialogo = useDialogo(onClose);
   return (
     <div
+      ref={refDialogo}
       role="dialog"
       aria-label="Acción rápida"
       onClick={onClose}

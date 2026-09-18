@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useDialogo } from '@/components/ui/useDialogo';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
@@ -334,8 +335,10 @@ function CategoryDetailSheet({
   const pct = totalSpend > 0 ? Math.round((total / totalSpend) * 100) : 0;
   const avg = transactions.length ? Math.round(total / transactions.length) : 0;
 
+  const refDialogo = useDialogo(onClose);
   return (
     <div
+      ref={refDialogo}
       role="dialog"
       aria-label={category?.name ?? 'Categoría — detalle'}
       onClick={onClose}

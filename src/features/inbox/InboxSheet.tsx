@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useDialogo } from '@/components/ui/useDialogo';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/data/db';
 import { localRepository, DEFAULT_SETTINGS } from '@/data/local/localRepository';
@@ -99,8 +100,10 @@ export function InboxSheet({ entradas, onClose, onCambio }: {
     }
   }
 
+  const refDialogo = useDialogo(onClose);
   return (
     <div
+      ref={refDialogo}
       role="dialog"
       aria-label="Por confirmar"
       onClick={onClose}

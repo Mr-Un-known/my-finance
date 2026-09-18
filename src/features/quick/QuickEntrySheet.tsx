@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useDialogo } from '@/components/ui/useDialogo';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/data/db';
 import { localRepository, DEFAULT_SETTINGS } from '@/data/local/localRepository';
@@ -135,8 +136,10 @@ export function QuickEntrySheet({ onClose, onAjustar }: {
     (c) => c.kind === 'both' || c.kind === parsed.type,
   );
 
+  const refDialogo = useDialogo(onClose);
   return (
     <div
+      ref={refDialogo}
       role="dialog"
       aria-label="Contale a la app"
       onClick={onClose}

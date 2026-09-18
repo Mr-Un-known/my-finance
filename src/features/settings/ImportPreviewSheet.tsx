@@ -1,12 +1,16 @@
 import type { BackupPreview } from '@/data/backup/exportImport';
+import { useDialogo } from '@/components/ui/useDialogo';
 
 export function ImportPreviewSheet({ preview, onConfirm, onCancel }: {
   preview: BackupPreview;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+
+  const refDialogo = useDialogo(onCancel);
   return (
     <div
+      ref={refDialogo}
       role="dialog" aria-label="Confirmar importación"
       style={{ position: 'fixed', inset: 0, background: 'color-mix(in srgb, black 40%, transparent)', display: 'flex', alignItems: 'flex-end', zIndex: 60 }}
       onClick={onCancel}

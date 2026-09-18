@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useDialogo } from '@/components/ui/useDialogo';
 import type { Category } from '@/domain/types';
 import { Field, FieldGroup } from '@/components/ui/Field';
 
@@ -37,8 +38,10 @@ export function CategoryForm({ existing, nextSortOrder, onSave, onCancel, onDele
     });
   }
 
+  const refDialogo = useDialogo(onCancel);
   return (
     <div
+      ref={refDialogo}
       role="dialog"
       aria-label={existing ? 'Editar categoría' : 'Nueva categoría'}
       style={{ position: 'fixed', inset: 0, background: 'color-mix(in srgb, black 40%, transparent)', display: 'flex', alignItems: 'flex-end', zIndex: 50 }}

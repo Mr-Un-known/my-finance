@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useDialogo } from '@/components/ui/useDialogo';
 import { useSearchParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Screen } from '@/components/ui/Screen';
@@ -249,6 +250,7 @@ export function TransactionsScreen() {
     />
   );
 
+  const refDialogo = useDialogo(() => setConfirmarBorrado(false), confirmarBorrado);
   return (
     <Screen
       title={enSeleccion ? `${elegidos.length} seleccionado${elegidos.length === 1 ? '' : 's'}` : 'Movimientos'}
@@ -386,6 +388,7 @@ export function TransactionsScreen() {
 
       {confirmarBorrado && (
         <div
+      ref={refDialogo}
           role="dialog"
           aria-label="Confirmar eliminación"
           onClick={() => setConfirmarBorrado(false)}

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useDialogo } from '@/components/ui/useDialogo';
 import type { Category, Frequency, PaymentMethod, RecurringRule, TransactionType } from '@/domain/types';
 import { parseMoney } from '@/domain/money/format';
 import { todayISO } from '@/lib/todayISO';
@@ -58,8 +59,10 @@ export function RecurringRuleForm({
     });
   }
 
+  const refDialogo = useDialogo(onCancel);
   return (
     <div
+      ref={refDialogo}
       role="dialog"
       aria-label={existing ? 'Editar recurrente' : 'Nuevo recurrente'}
       style={{ position: 'fixed', inset: 0, background: 'color-mix(in srgb, black 40%, transparent)', display: 'flex', alignItems: 'flex-end', zIndex: 50 }}
