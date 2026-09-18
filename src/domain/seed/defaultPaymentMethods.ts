@@ -6,9 +6,9 @@
 import type { PaymentMethod } from '../types';
 
 export const DEFAULT_PAYMENT_METHODS: PaymentMethod[] = [
-  { id: 'pm-debito', type: 'debit', name: 'Débito', isDefault: true },
+  { id: 'pm-debito', type: 'debit', name: 'Débito', isDefault: true, updatedAt: '' },
   {
     id: 'pm-tc', type: 'credit', name: 'Tarjeta de crédito', isDefault: false,
-    cutoffDay: 15, paymentDay: 2,
+    cutoffDay: 15, paymentDay: 2, updatedAt: '',
   },
 ];

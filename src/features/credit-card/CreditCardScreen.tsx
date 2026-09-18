@@ -9,12 +9,13 @@ import { formatMoney } from '@/domain/money/format';
 import { groupByCycle } from '@/domain/credit-card/groupByCycle';
 import { formatShortDate } from '@/lib/formatShortDate';
 import { todayISO } from '@/lib/todayISO';
+import { VACIO } from '@/lib/vacio';
 
 export function CreditCardScreen() {
   const navigate = useNavigate();
-  const transactions = useLiveQuery(() => db.transactions.toArray(), []) ?? [];
-  const paymentMethods = useLiveQuery(() => localRepository.listPaymentMethods(), []) ?? [];
-  const categories = useLiveQuery(() => localRepository.listCategories(), []) ?? [];
+  const transactions = useLiveQuery(() => db.transactions.toArray(), []) ?? VACIO;
+  const paymentMethods = useLiveQuery(() => localRepository.listPaymentMethods(), []) ?? VACIO;
+  const categories = useLiveQuery(() => localRepository.listCategories(), []) ?? VACIO;
   const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
   const creditMethodIds = useMemo(

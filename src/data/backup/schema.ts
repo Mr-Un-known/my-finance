@@ -28,6 +28,7 @@ export const CategorySchema = z.object({
   icon: z.string().min(1),
   color: z.string().min(1),
   kind: z.enum(['expense', 'income', 'both']),
+  updatedAt: z.string().default(''),
   isArchived: z.boolean(),
   sortOrder: z.number(),
 });
@@ -37,6 +38,7 @@ export const PaymentMethodSchema = z.object({
   type: z.enum(['debit', 'credit', 'cash', 'transfer']),
   name: z.string().min(1),
   isDefault: z.boolean(),
+  updatedAt: z.string().default(''),
   cutoffDay: z.number().int().min(1).max(31).optional(),
   paymentDay: z.number().int().min(1).max(31).optional(),
 });
@@ -73,6 +75,7 @@ export const RecurringRuleSchema = z.object({
   startDate: isoDate,
   endDate: isoDate.optional(),
   isActive: z.boolean(),
+  updatedAt: z.string().default(''),
 });
 
 export const BudgetSchema = z.object({

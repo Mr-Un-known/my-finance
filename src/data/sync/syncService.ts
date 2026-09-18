@@ -51,6 +51,31 @@ function newer(a: string, b: string): boolean {
  * Las transacciones ya se resolvian por updatedAt; los Settings no tenian
  * con que compararse.
  */
+/**
+ * Cual de las dos copias de una fila se queda. Misma regla que
+ * elegirSettings, separada para poder probarla sin base de datos.
+ */
+export function elegirFila<T extends { updatedAt: string }>(local: T | undefined, remota: T): T {
+  if (!local) return remota;
+  return newer(remota.updatedAt, local.updatedAt) ? remota : local;
+}
+
+/**
+ * De cada fila remota, se queda la que gane contra su copia local. Las que
+ * ganan localmente se devuelven tal cual estan aca, asi el bulkPut que
+ * viene despues no las cambia.
+ */
+async function conservarMasNuevo<T extends { id: string; updatedAt: string }>(
+  remotas: T[],
+  buscarLocal: (id: string) => Promise<T | undefined>,
+): Promise<T[]> {
+  const resultado: T[] = [];
+  for (const remota of remotas) {
+    resultado.push(elegirFila(await buscarLocal(remota.id), remota));
+  }
+  return resultado;
+}
+
 export function elegirSettings(local: Settings | undefined, remoto: Settings): Settings {
   if (!local) return remoto;
   return newer(remoto.updatedAt, local.updatedAt) ? remoto : local;
@@ -98,14 +123,24 @@ export async function pullCloudToLocal(): Promise<SyncResult> {
   const borradoPm = deletedIdsOf(todas, 'paymentMethods');
   const borradoRr = deletedIdsOf(todas, 'recurringRules');
 
-  // ponytail: categorias, metodos y reglas se pisan con lo remoto sin
-  // comparar fechas — no tienen updatedAt. Los borrados ya viajan por
-  // lapida; lo que se puede perder es un renombre hecho sin conexion.
-  // Si aparece, la solucion es la misma que la de Settings: darles
-  // updatedAt y comparar.
-  await db.categories.bulkPut(categories.filter((c) => !borradoCat.has(c.id)));
-  await db.paymentMethods.bulkPut(methods.filter((m) => !borradoPm.has(m.id)));
-  await db.recurringRules.bulkPut(rules.filter((r) => !borradoRr.has(r.id)));
+  // Se queda el mas nuevo de cada lado, igual que con las transacciones.
+  //
+  // Antes esto era un bulkPut ciego, y el efecto NO era solo perder un
+  // cambio hecho sin conexion: como el ciclo siempre empieza bajando y
+  // guardar no dispara una subida, renombrar una categoria, archivarla,
+  // cambiar el dia de corte de una tarjeta o apagar una regla recurrente
+  // se deshacia SOLO en el siguiente visibilitychange, con un unico
+  // dispositivo y con internet. Una fila sin updatedAt da NaN y pierde,
+  // que es el comportamiento viejo: la migracion sale gratis.
+  await db.categories.bulkPut(
+    await conservarMasNuevo(categories.filter((c) => !borradoCat.has(c.id)), (id) => db.categories.get(id)),
+  );
+  await db.paymentMethods.bulkPut(
+    await conservarMasNuevo(methods.filter((m) => !borradoPm.has(m.id)), (id) => db.paymentMethods.get(id)),
+  );
+  await db.recurringRules.bulkPut(
+    await conservarMasNuevo(rules.filter((r) => !borradoRr.has(r.id)), (id) => db.recurringRules.get(id)),
+  );
   await db.settings.put(elegirSettings(await db.settings.get('singleton'), settings));
 
   const localAll = await db.transactions.toArray();

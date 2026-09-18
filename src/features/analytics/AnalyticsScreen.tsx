@@ -10,9 +10,11 @@ import { localRepository } from '@/data/local/localRepository';
 import { formatCompact, formatMoney } from '@/domain/money/format';
 import { calculateDebitVsCredit, calculateFixedVsVariable, monthlySeries } from '@/domain/analytics/series';
 import { calculateSpendByCategory } from '@/domain/totals/byCategory';
+import { categoryColor, COLOR_SIN_CATEGORIA } from '@/domain/seed/categoryColor';
 import { filterByRange, rangeBounds, toMonthlyPoints, toQuarterlyPoints, toYearlyPoints, type PeriodPoint, type Range } from './periodAggregate';
 import type { Transaction, Category } from '@/domain/types';
 import { todayISO } from '@/lib/todayISO';
+import { VACIO } from '@/lib/vacio';
 
 const CHART_COLORS = ['#007AFF', '#FF9500', '#34C759', '#AF52DE', '#FF3B30', '#FFCC00', '#5AC8FA', '#FF2D55'];
 
@@ -20,9 +22,9 @@ export function AnalyticsScreen() {
   const [range, setRange] = useState<Range>('mes');
   const [detailCategoryId, setDetailCategoryId] = useState<string | null | undefined>(undefined);
 
-  const transactions = useLiveQuery(() => db.transactions.toArray(), []) ?? [];
-  const categories = useLiveQuery(() => localRepository.listCategories(), []) ?? [];
-  const paymentMethods = useLiveQuery(() => localRepository.listPaymentMethods(), []) ?? [];
+  const transactions = useLiveQuery(() => db.transactions.toArray(), []) ?? VACIO;
+  const categories = useLiveQuery(() => localRepository.listCategories(), []) ?? VACIO;
+  const paymentMethods = useLiveQuery(() => localRepository.listPaymentMethods(), []) ?? VACIO;
   const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
   const creditMethodIds = useMemo(
@@ -76,7 +78,7 @@ export function AnalyticsScreen() {
         id: c.categoryId ?? 'none',
         name: cat?.name ?? 'Sin categoría',
         icon: cat?.icon ?? '✳️',
-        color: cat?.color ?? 'var(--text-faint)',
+        color: cat ? categoryColor(cat) : COLOR_SIN_CATEGORIA,
         amount: c.amount,
         count: c.count,
       };
@@ -112,7 +114,7 @@ export function AnalyticsScreen() {
             return {
               id: c.categoryId ?? `income-${i}`,
               name: cat?.name ?? 'Sin categoría',
-              color: (cat?.color ?? CHART_COLORS[i % CHART_COLORS.length]) as string,
+              color: cat ? categoryColor(cat) : CHART_COLORS[i % CHART_COLORS.length]!,
               amount: c.amount,
             };
           })}
@@ -128,7 +130,7 @@ export function AnalyticsScreen() {
             return {
               id: c.categoryId ?? `spend-${i}`,
               name: cat?.name ?? 'Sin categoría',
-              color: (cat?.color ?? CHART_COLORS[i % CHART_COLORS.length]) as string,
+              color: cat ? categoryColor(cat) : CHART_COLORS[i % CHART_COLORS.length]!,
               amount: c.amount,
             };
           })}
@@ -137,7 +139,7 @@ export function AnalyticsScreen() {
         <div style={{ height: 12 }} />
         <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 10, borderTop: '1px solid var(--line)' }}>
           <span style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)', fontWeight: 600 }}>Balance</span>
-          <span className="figures" style={{ fontWeight: 700, color: incomeTotal - spendTotal >= 0 ? 'var(--positive)' : 'var(--danger)' }}>
+          <span className="figures" style={{ fontWeight: 700, color: incomeTotal - spendTotal >= 0 ? 'var(--positive-text)' : 'var(--danger-text)' }}>
             {incomeTotal - spendTotal >= 0 ? '+ ' : ''}{formatMoney(incomeTotal - spendTotal)}
           </span>
         </div>
@@ -218,15 +220,15 @@ export function AnalyticsScreen() {
       <ChartCard title="Fijos vs. variables">
         <SplitBar
           a={{ label: 'Fijos', value: fixedVsVariable.fixed, color: 'var(--committed)' }}
-          b={{ label: 'Variables', value: fixedVsVariable.variable, color: 'var(--q25)' }}
+          b={{ label: 'Variables', value: fixedVsVariable.variable, color: 'var(--q25-text)' }}
           total={totalFV}
         />
       </ChartCard>
 
       <ChartCard title="Débito vs. tarjeta de crédito">
         <SplitBar
-          a={{ label: 'Débito', value: debitVsCredit.debit, color: 'var(--q10)' }}
-          b={{ label: 'Tarjeta', value: debitVsCredit.credit, color: 'var(--q25)' }}
+          a={{ label: 'Débito', value: debitVsCredit.debit, color: 'var(--q10-text)' }}
+          b={{ label: 'Tarjeta', value: debitVsCredit.credit, color: 'var(--q25-text)' }}
           total={totalDC}
         />
       </ChartCard>

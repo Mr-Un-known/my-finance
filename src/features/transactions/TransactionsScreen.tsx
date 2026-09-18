@@ -20,6 +20,7 @@ import type { Transaction } from '@/domain/types';
 import { groupByQuincena } from './groupByQuincena';
 import { TransactionRow } from './TransactionRow';
 import { TransactionForm, type Prefill } from './TransactionForm';
+import { VACIO } from '@/lib/vacio';
 
 
 export function TransactionsScreen() {
@@ -40,9 +41,9 @@ export function TransactionsScreen() {
   useEffect(() => { void ensureMonthMaterialized(cursor.y, cursor.m); }, [cursor]);
 
   const settings = useLiveQuery(() => localRepository.getSettings(), []) ?? DEFAULT_SETTINGS;
-  const categories = useLiveQuery(() => localRepository.listCategories(), []) ?? [];
-  const paymentMethods = useLiveQuery(() => localRepository.listPaymentMethods(), []) ?? [];
-  const transactions = useLiveQuery(() => db.transactions.toArray(), []) ?? [];
+  const categories = useLiveQuery(() => localRepository.listCategories(), []) ?? VACIO;
+  const paymentMethods = useLiveQuery(() => localRepository.listPaymentMethods(), []) ?? VACIO;
+  const transactions = useLiveQuery(() => db.transactions.toArray(), []) ?? VACIO;
 
   // Abrir el form desde una URL. Dos formas, ambas para Atajos de iOS:
   //
@@ -59,6 +60,15 @@ export function TransactionsScreen() {
   useEffect(() => {
     const texto = params.get('texto') ?? params.get('sms');
     if (params.get('nuevo') !== '1' && !texto) return;
+
+    // Esperar a que Dexie devuelva los metodos de pago antes de consumir
+    // la URL. El efecto corre en el primer render, cuando useLiveQuery
+    // todavia no resolvio y `paymentMethods` es []; si borrabamos los
+    // params ahi, `metodoPorTipo` devolvia null y la segunda pasada —esta
+    // vez con los metodos cargados— ya no encontraba nada en la URL.
+    // Se notaba justo donde mas duele: un Atajo de iOS abriendo la app en
+    // frio dejaba el gasto sin metodo de pago, sin forma de recuperarlo.
+    if (paymentMethods.length === 0) return;
 
     let nuevo: Prefill;
     if (texto) {
@@ -213,8 +223,8 @@ export function TransactionsScreen() {
             {monthTotal.count} movimiento{monthTotal.count !== 1 ? 's' : ''}
           </span>
           <span style={{ display: 'flex', gap: 12, fontSize: 'var(--text-sm)', fontWeight: 700 }}>
-            <span className="figures" style={{ color: 'var(--positive)' }}>+ {formatMoney(monthTotal.income)}</span>
-            <span className="figures" style={{ color: 'var(--danger)' }}>− {formatMoney(monthTotal.expense)}</span>
+            <span className="figures" style={{ color: 'var(--positive-text)' }}>+ {formatMoney(monthTotal.income)}</span>
+            <span className="figures" style={{ color: 'var(--danger-text)' }}>− {formatMoney(monthTotal.expense)}</span>
           </span>
         </div>
       )}
@@ -260,7 +270,7 @@ export function TransactionsScreen() {
 
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 8px' }}>
                 <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Restante</span>
-                <span className="figures" style={{ fontWeight: 700, color: group.balance.restante >= 0 ? 'var(--positive)' : 'var(--danger)' }}>
+                <span className="figures" style={{ fontWeight: 700, color: group.balance.restante >= 0 ? 'var(--positive-text)' : 'var(--danger-text)' }}>
                   {formatMoney(group.balance.restante)}
                 </span>
               </div>

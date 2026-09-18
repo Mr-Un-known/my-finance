@@ -7,6 +7,7 @@ import { setMoneyLocale, formatMoney } from '@/domain/money/format';
 import { haptic } from '@/lib/haptic';
 import { pedirSync } from '@/data/sync/useCloudSync';
 import type { Settings } from '@/domain/types';
+import { categoryColor } from '@/domain/seed/categoryColor';
 
 const PASOS = ['nombre', 'moneda', 'quincenas', 'categorias'] as const;
 type Paso = typeof PASOS[number];
@@ -161,9 +162,9 @@ export function OnboardingScreen({ settings }: { settings: Settings }) {
                       style={{
                         display: 'flex', alignItems: 'center', gap: 6,
                         minHeight: 'var(--tap)', padding: '0 14px', borderRadius: 999,
-                        border: `1.5px solid ${activa ? c.color : 'var(--line)'}`,
-                        background: activa ? `color-mix(in srgb, ${c.color} 16%, var(--surface))` : 'var(--surface)',
-                        color: activa ? c.color : 'var(--text-faint)',
+                        border: `1.5px solid ${activa ? categoryColor(c) : 'var(--line)'}`,
+                        background: activa ? `color-mix(in srgb, ${categoryColor(c)} 16%, var(--surface))` : 'var(--surface)',
+                        color: activa ? categoryColor(c) : 'var(--text-faint)',
                         fontSize: 'var(--text-base)', fontWeight: 600, cursor: 'pointer',
                       }}
                     >

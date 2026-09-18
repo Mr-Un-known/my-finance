@@ -5,10 +5,10 @@ import type { Category, PaymentMethod } from '../types';
 
 const HOY = '2026-09-18';
 const CATS: Category[] = [
-  { id: 'cat-alimentacion', name: 'Alimentación', icon: '🍽️', color: '#E0A23B', kind: 'expense', isArchived: false, sortOrder: 0 },
+  { id: 'cat-alimentacion', name: 'Alimentación', icon: '🍽️', color: '#E0A23B', kind: 'expense', isArchived: false, sortOrder: 0, updatedAt: '' },
 ];
 const METS: PaymentMethod[] = [
-  { id: 'pm-debito', type: 'debit', name: 'Débito', isDefault: true },
+  { id: 'pm-debito', type: 'debit', name: 'Débito', isDefault: true, updatedAt: '' },
 ];
 
 describe('describirFecha', () => {

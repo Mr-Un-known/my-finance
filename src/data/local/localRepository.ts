@@ -11,6 +11,15 @@ import { makeTombstone, type DeletableEntity } from '../sync/tombstones';
  * otros dispositivos en vez de que ellos lo resuciten en el siguiente
  * sync (ver data/sync/tombstones.ts).
  */
+/**
+ * Pone la fecha de guardado. Va aca, en el unico lugar por el que pasan
+ * todos los guardados, y no en cada pantalla: asi ninguna puede olvidarse
+ * y dejar una fila que la sincronizacion no sepa fechar.
+ */
+function sellar<T extends { updatedAt: string }>(fila: T): T {
+  return { ...fila, updatedAt: new Date().toISOString() };
+}
+
 async function borrarConLapida(entity: DeletableEntity, id: string): Promise<void> {
   await db.deletions.put(makeTombstone(entity, id, new Date().toISOString()));
 }
@@ -51,11 +60,11 @@ export const localRepository: Repository = {
   },
 
   listCategories: () => db.categories.orderBy('sortOrder').toArray(),
-  saveCategory: async (category) => { await db.categories.put(category); },
+  saveCategory: async (category) => { await db.categories.put(sellar(category)); },
   deleteCategory: async (id) => { await db.categories.delete(id); await borrarConLapida('categories', id); },
 
   listPaymentMethods: () => db.paymentMethods.toArray(),
-  savePaymentMethod: async (method) => { await db.paymentMethods.put(method); },
+  savePaymentMethod: async (method) => { await db.paymentMethods.put(sellar(method)); },
   deletePaymentMethod: async (id) => { await db.paymentMethods.delete(id); await borrarConLapida('paymentMethods', id); },
 
   listTransactions: (range) =>
@@ -86,7 +95,7 @@ export const localRepository: Repository = {
   deleteTransaction: async (id) => { await db.transactions.delete(id); await borrarConLapida('transactions', id); },
 
   listRecurringRules: () => db.recurringRules.toArray(),
-  saveRecurringRule: async (rule) => { await db.recurringRules.put(rule); },
+  saveRecurringRule: async (rule) => { await db.recurringRules.put(sellar(rule)); },
   deleteRecurringRule: async (id) => { await db.recurringRules.delete(id); await borrarConLapida('recurringRules', id); },
 
   listBudgets: (year, month) =>

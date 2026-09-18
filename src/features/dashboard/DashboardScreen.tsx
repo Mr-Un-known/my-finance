@@ -11,7 +11,8 @@ import { ensureMonthMaterialized } from '@/data/local/materialize';
 import { formatMoney } from '@/domain/money/format';
 import { calculateMonthBalance } from '@/domain/quincena/balance';
 import { calculateMonthFlow } from '@/domain/totals/available';
-import { quincenaKey } from '@/domain/quincena/quincena';
+import { calculatePorPagar } from '@/domain/totals/porPagar';
+import { calculateQuincena, quincenaKey } from '@/domain/quincena/quincena';
 import { withResolvedQuincena } from '@/domain/quincena/resolve';
 import { shiftMonth } from '@/domain/dates';
 import { formatShortDate } from '@/lib/formatShortDate';
@@ -21,6 +22,7 @@ import { AnimatedNumber } from './AnimatedNumber';
 import { PorPagarSheet } from './PorPagarSheet';
 import { haptic } from '@/lib/haptic';
 import type { Transaction } from '@/domain/types';
+import { VACIO } from '@/lib/vacio';
 
 
 export function DashboardScreen() {
@@ -29,7 +31,7 @@ export function DashboardScreen() {
   const [porPagarOpen, setPorPagarOpen] = useState(false);
 
   const today = todayISO();
-  const [todayYear, todayMonth, dayOfMonth] = today.split('-').map(Number) as [number, number, number];
+  const [todayYear, todayMonth] = today.split('-').map(Number) as [number, number];
 
   // Mes visible. Arranca en el actual; las flechas lo mueven. Todo lo de
   // abajo (flujo, quincenas, proximos) se recalcula sobre ESTE mes.
@@ -43,8 +45,8 @@ export function DashboardScreen() {
   useEffect(() => { void ensureMonthMaterialized(year, month); }, [year, month]);
 
   const settings = useLiveQuery(() => localRepository.getSettings(), []) ?? DEFAULT_SETTINGS;
-  const transactions = useLiveQuery(() => db.transactions.toArray(), []) ?? [];
-  const categories = useLiveQuery(() => localRepository.listCategories(), []) ?? [];
+  const transactions = useLiveQuery(() => db.transactions.toArray(), []) ?? VACIO;
+  const categories = useLiveQuery(() => localRepository.listCategories(), []) ?? VACIO;
   const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
   const resolved = useMemo(
@@ -62,20 +64,27 @@ export function DashboardScreen() {
   const monthBalance = useMemo(() => calculateMonthBalance(resolved, year, month), [resolved, year, month]);
   const flow = useMemo(() => calculateMonthFlow(monthTransactions), [monthTransactions]);
 
-  const pendientes = monthTransactions.filter((t) => t.type === 'expense' && t.status === 'pending');
-  const programados = monthTransactions.filter((t) => t.type === 'expense' && t.status === 'scheduled');
-  const tcComprometido = monthTransactions.filter(
-    (t) => t.type === 'expense' && t.status !== 'paid' && t.status !== 'cancelled' && t.cyclePaymentDate,
-  );
-  const porPagarCount = pendientes.length + programados.length + tcComprometido.length;
+  // Conjuntos disjuntos: un gasto con tarjeta cuenta UNA vez, en tarjeta.
+  // Antes los tres filtros se solapaban y el chip mostraba un conteo
+  // inflado al lado de un total correcto. Ver domain/totals/porPagar.ts.
+  const porPagar = useMemo(() => calculatePorPagar(monthTransactions), [monthTransactions]);
 
   // Proximos: la MISMA lista del mes que alimenta el hero, para que
   // "falta pagar" de arriba y "esperas gastar" de abajo coincidan.
   const upcoming = useMemo(() => selectUpcoming(monthTransactions, 8), [monthTransactions]);
   const totals = useMemo(() => upcomingTotals(monthTransactions), [monthTransactions]);
 
-  // Quincena activa: solo tiñe el hero cuando estas mirando el mes actual.
-  const activeQuincenaIdx = !isCurrentMonth ? -1 : dayOfMonth < settings.quincenaStartDays[1] ? 0 : 1;
+  // Quincena activa: se la pregunta al dominio en vez de recalcularla.
+  // La cuenta a mano (`dia < quincenaStartDays[1] ? 0 : 1`) estaba MAL los
+  // primeros ~9 días de cada mes: el 3 de septiembre marcaba la quincena
+  // del 10 de septiembre, cuando la que sigue viva es la del 25 de AGOSTO
+  // — que es justo la que cruza el cambio de mes, el caso que el dominio
+  // ya modela y tiene testeado.
+  const claveHoy = useMemo(
+    () => calculateQuincena(today, settings.quincenaStartDays).key,
+    [today, settings.quincenaStartDays],
+  );
+  const activeQuincenaIdx = monthKeys.indexOf(claveHoy);
   const heroTintVar = activeQuincenaIdx === 1 ? '--q25-soft' : '--q10-soft';
   const heroAccentVar = activeQuincenaIdx === 1 ? '--q25' : '--q10';
 
@@ -144,7 +153,7 @@ export function DashboardScreen() {
             fontWeight: 700,
             lineHeight: 'var(--lh-tight)',
             letterSpacing: '-0.022em',
-            color: monthBalance.sobrante >= 0 ? 'var(--text)' : 'var(--danger)',
+            color: monthBalance.sobrante >= 0 ? 'var(--text)' : 'var(--danger-text)',
           }}
         />
         <p style={{ margin: '4px 0 0', fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
@@ -184,7 +193,7 @@ export function DashboardScreen() {
         />
       </div>
 
-      {porPagarCount > 0 && (
+      {porPagar.count > 0 && (
         <button
           type="button"
           onClick={() => setPorPagarOpen(true)}
@@ -200,10 +209,10 @@ export function DashboardScreen() {
               Desglose de lo que falta pagar
             </div>
             <div className="figures" style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>
-              {porPagarCount} · {formatMoney(flow.porPagar)}
+              {porPagar.count} · {formatMoney(porPagar.monto)}
             </div>
             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-faint)', marginTop: 2 }}>
-              {pendientes.length} pendiente{pendientes.length !== 1 ? 's' : ''} · {programados.length} programado{programados.length !== 1 ? 's' : ''} · {tcComprometido.length} en tarjeta
+              {porPagar.pendientes.length} pendiente{porPagar.pendientes.length !== 1 ? 's' : ''} · {porPagar.programados.length} programado{porPagar.programados.length !== 1 ? 's' : ''} · {porPagar.enTarjeta.length} en tarjeta
             </div>
           </div>
           <span style={{ color: 'var(--text-faint)', fontSize: 22 }}>›</span>
@@ -253,7 +262,7 @@ export function DashboardScreen() {
                   style={{
                     width: 28, height: 28, minWidth: 28, borderRadius: 14, flex: 'none',
                     border: `1.5px solid ${isPaid ? 'var(--positive)' : 'var(--line-strong)'}`,
-                    background: isPaid ? 'var(--positive)' : 'transparent',
+                    background: isPaid ? 'var(--positive-text)' : 'transparent',
                     color: isPaid ? '#fff' : 'transparent',
                     display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: 14,
                     transition: 'all var(--dur-fast) var(--ease-spring-out)',
@@ -276,14 +285,14 @@ export function DashboardScreen() {
                     <div style={{ fontSize: 'var(--text-md)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {tx.concept}
                     </div>
-                    <div style={{ fontSize: 'var(--text-xs)', color: isLate ? 'var(--danger)' : 'var(--text-muted)' }}>
+                    <div style={{ fontSize: 'var(--text-xs)', color: isLate ? 'var(--danger-text)' : 'var(--text-muted)' }}>
                       {isLate ? 'venció ' : ''}{day} {monthLabel}
                     </div>
                   </div>
                 </button>
                 <span
                   className="figures"
-                  style={{ fontWeight: 600, fontSize: 'var(--text-md)', color: isIncome ? 'var(--positive)' : 'var(--text)' }}
+                  style={{ fontWeight: 600, fontSize: 'var(--text-md)', color: isIncome ? 'var(--positive-text)' : 'var(--text)' }}
                 >
                   {isIncome ? '+ ' : ''}{formatMoney(tx.amount)}
                 </span>
@@ -302,12 +311,7 @@ export function DashboardScreen() {
       </button>
 
       {porPagarOpen && (
-        <PorPagarSheet
-          pendientes={pendientes}
-          programados={programados}
-          enTC={tcComprometido}
-          onClose={() => setPorPagarOpen(false)}
-        />
+        <PorPagarSheet porPagar={porPagar} onClose={() => setPorPagarOpen(false)} />
       )}
     </Screen>
   );
@@ -363,7 +367,7 @@ function QuincenaCard({ day, restante, colorVar, softVar, isActive }: {
       <p style={{ margin: '0 0 6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: `var(${colorVar})`, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
         Quincena del {day}
       </p>
-      <p className="figures" style={{ margin: 0, fontSize: 'var(--text-lg)', fontWeight: 700, color: restante >= 0 ? 'var(--text)' : 'var(--danger)' }}>
+      <p className="figures" style={{ margin: 0, fontSize: 'var(--text-lg)', fontWeight: 700, color: restante >= 0 ? 'var(--text)' : 'var(--danger-text)' }}>
         {formatMoney(restante)}
       </p>
     </div>

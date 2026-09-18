@@ -114,7 +114,14 @@ function extraerConcepto(texto: string, aQuitar: Array<string | null>): string {
   // Restos de referencia que tampoco son el comercio.
   // Varias palabras seguidas antes del numero: 'saldo disponible 1200000'
   // dejaba 'saldo' suelto cuando el patron solo aceptaba una.
-  t = t.replace(/\b(?:(?:ref|referencia|autorizacion|aut|cupo|saldo|disponible|trans|tarjeta|terminada)\s*[:#]?\s*)+\d+/g, ' ');
+  // La repeticion va ACOTADA a {1,5}. Con `+` sin cota, las alternativas
+  // que comparten prefijo (ref/referencia, aut/autorizacion) provocaban
+  // backtracking exponencial: 96 caracteres de 'ref ' repetido tardaban
+  // 859 ms, y ~150 colgaban el hilo por minutos. No era teorico — este
+  // texto llega de una funcion publica a la bandeja, asi que un mensaje
+  // corto congelaba el navegador de quien la abriera. En un SMS real
+  // nunca hay mas de dos o tres de estas palabras seguidas.
+  t = t.replace(/\b(?:(?:ref|referencia|autorizacion|aut|cupo|saldo|disponible|trans|tarjeta|terminada)\s*[:#]?\s*){1,5}\d+/g, ' ');
   const palabras = t
     .replace(/[^\p{L}\p{N}\s]/gu, ' ')
     .split(/\s+/)

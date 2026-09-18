@@ -23,10 +23,11 @@ export function BudgetAmountSheet({ category, currentAmount, onSave, onCancel }:
         <p style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, margin: '0 0 14px' }}>
           <span aria-hidden>{category.icon}</span>{category.name}
         </p>
-        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', margin: '0 0 6px' }}>
+        <label htmlFor="presupuesto-monto" style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', margin: '0 0 6px' }}>
           Presupuesto mensual
         </label>
         <input
+          id="presupuesto-monto"
           autoFocus value={text} onChange={(e) => setText(e.target.value)} placeholder="$ 0" inputMode="numeric" className="figures"
           style={{ width: '100%', minHeight: 'var(--tap)', padding: '0 12px', marginBottom: 16, borderRadius: 'var(--radius-s)', border: '1px solid var(--line-strong)', background: 'var(--surface)', color: 'var(--text)', fontSize: 18 }}
         />

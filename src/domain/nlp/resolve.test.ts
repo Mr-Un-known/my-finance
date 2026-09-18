@@ -3,8 +3,8 @@ import { categoriaFinal, metodoPorTipo } from './resolve';
 import type { PaymentMethod } from '../types';
 
 const METODOS: PaymentMethod[] = [
-  { id: 'pm-debito', type: 'debit', name: 'Débito', isDefault: true },
-  { id: 'pm-tc', type: 'credit', name: 'Tarjeta de crédito', isDefault: false },
+  { id: 'pm-debito', type: 'debit', name: 'Débito', isDefault: true, updatedAt: '' },
+  { id: 'pm-tc', type: 'credit', name: 'Tarjeta de crédito', isDefault: false, updatedAt: '' },
 ];
 
 describe('metodoPorTipo', () => {

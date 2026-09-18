@@ -9,9 +9,11 @@ import { parseUtterance } from '@/domain/nlp/parse';
 import { categoriaFinal, metodoPorTipo } from '@/domain/nlp/resolve';
 import { formatMoney } from '@/domain/money/format';
 import type { Transaction } from '@/domain/types';
+import { categoryColor } from '@/domain/seed/categoryColor';
 import { escuchar, hayDictado, type Reconocedor } from '@/lib/speech';
 import { haptic } from '@/lib/haptic';
 import { nowISO, todayISO } from '@/lib/todayISO';
+import { VACIO } from '@/lib/vacio';
 
 const EJEMPLOS = [
   'gasté 45 mil en el almuerzo',
@@ -42,9 +44,9 @@ export function QuickEntrySheet({ onClose, onAjustar }: {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const settings = useLiveQuery(() => localRepository.getSettings(), []) ?? DEFAULT_SETTINGS;
-  const categorias = useLiveQuery(() => localRepository.listCategories(), []) ?? [];
-  const metodos = useLiveQuery(() => localRepository.listPaymentMethods(), []) ?? [];
-  const conceptIndex = useLiveQuery(() => db.conceptIndex.toArray(), []) ?? [];
+  const categorias = useLiveQuery(() => localRepository.listCategories(), []) ?? VACIO;
+  const metodos = useLiveQuery(() => localRepository.listPaymentMethods(), []) ?? VACIO;
+  const conceptIndex = useLiveQuery(() => db.conceptIndex.toArray(), []) ?? VACIO;
 
   const hoy = todayISO();
   const parsed = useMemo(() => parseUtterance(texto, hoy), [texto, hoy]);
@@ -191,7 +193,7 @@ export function QuickEntrySheet({ onClose, onAjustar }: {
               aria-pressed={escuchando}
               style={{
                 width: 48, height: 48, flex: 'none', borderRadius: 24, border: 'none',
-                background: escuchando ? 'var(--danger)' : 'var(--q10)',
+                background: escuchando ? 'var(--danger-text)' : 'var(--q10)',
                 color: '#fff', fontSize: 20, cursor: 'pointer',
                 animation: escuchando ? 'fadeIn 0.6s ease-in-out infinite alternate' : undefined,
               }}
@@ -202,7 +204,7 @@ export function QuickEntrySheet({ onClose, onAjustar }: {
         </div>
 
         {escuchando && (
-          <p style={{ margin: '0 0 12px', fontSize: 'var(--text-sm)', color: 'var(--q10)', fontWeight: 600 }}>
+          <p style={{ margin: '0 0 12px', fontSize: 'var(--text-sm)', color: 'var(--q10-text)', fontWeight: 600 }}>
             Te escucho…
           </p>
         )}
@@ -216,7 +218,7 @@ export function QuickEntrySheet({ onClose, onAjustar }: {
           >
             <p style={{ margin: 0, fontSize: 'var(--text-md)', fontWeight: 600 }}>{desc.resumen}</p>
             {desc.falta && (
-              <p style={{ margin: '6px 0 0', fontSize: 'var(--text-sm)', color: 'var(--danger)' }}>{desc.falta}</p>
+              <p style={{ margin: '6px 0 0', fontSize: 'var(--text-sm)', color: 'var(--danger-text)' }}>{desc.falta}</p>
             )}
             {desc.nota && !desc.falta && (
               <p style={{ margin: '6px 0 0', fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{desc.nota}</p>
@@ -239,9 +241,9 @@ export function QuickEntrySheet({ onClose, onAjustar }: {
                   style={{
                     flex: 'none', display: 'flex', alignItems: 'center', gap: 6,
                     minHeight: 'var(--tap)', padding: '0 12px', borderRadius: 999,
-                    border: `1.5px solid ${categoryId === c.id ? c.color : 'var(--line)'}`,
-                    background: categoryId === c.id ? `color-mix(in srgb, ${c.color} 16%, var(--surface))` : 'var(--surface)',
-                    color: categoryId === c.id ? c.color : 'var(--text)',
+                    border: `1.5px solid ${categoryId === c.id ? categoryColor(c) : 'var(--line)'}`,
+                    background: categoryId === c.id ? `color-mix(in srgb, ${categoryColor(c)} 16%, var(--surface))` : 'var(--surface)',
+                    color: categoryId === c.id ? categoryColor(c) : 'var(--text)',
                     fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
                   }}
                 >
@@ -273,8 +275,8 @@ export function QuickEntrySheet({ onClose, onAjustar }: {
           </div>
         )}
 
-        {error && <p role="alert" style={{ margin: '0 0 12px', fontSize: 'var(--text-sm)', color: 'var(--danger)' }}>{error}</p>}
-        {guardado && <p role="status" style={{ margin: '0 0 12px', fontSize: 'var(--text-sm)', color: 'var(--positive)', fontWeight: 600 }}>{guardado}</p>}
+        {error && <p role="alert" style={{ margin: '0 0 12px', fontSize: 'var(--text-sm)', color: 'var(--danger-text)' }}>{error}</p>}
+        {guardado && <p role="status" style={{ margin: '0 0 12px', fontSize: 'var(--text-sm)', color: 'var(--positive-text)', fontWeight: 600 }}>{guardado}</p>}
 
         <button
           type="button"

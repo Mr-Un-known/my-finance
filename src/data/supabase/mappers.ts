@@ -43,35 +43,41 @@ export function settingsToRow(userId: string, s: Settings): SettingsRow {
 
 export interface CategoryRow {
   id: string; user_id: string; name: string; icon: string; color: string;
-  kind: string; is_archived: boolean; sort_order: number;
+  kind: string; is_archived: boolean; sort_order: number; updated_at: string;
 }
 export function categoryFromRow(row: CategoryRow): Category {
   return {
     id: row.id, name: row.name, icon: row.icon, color: row.color,
     kind: row.kind as Category['kind'], isArchived: row.is_archived, sortOrder: row.sort_order,
+    updatedAt: row.updated_at,
   };
 }
 export function categoryToRow(userId: string, c: Category): CategoryRow {
   return {
     id: c.id, user_id: userId, name: c.name, icon: c.icon, color: c.color,
     kind: c.kind, is_archived: c.isArchived, sort_order: c.sortOrder,
+    // Explicito: si no se manda, el default now() de Postgres pisa la
+    // fecha y lo remoto siempre parece mas nuevo que lo local.
+    updated_at: c.updatedAt || new Date().toISOString(),
   };
 }
 
 export interface PaymentMethodRow {
   id: string; user_id: string; type: string; name: string; is_default: boolean;
-  cutoff_day: number | null; payment_day: number | null;
+  cutoff_day: number | null; payment_day: number | null; updated_at: string;
 }
 export function paymentMethodFromRow(row: PaymentMethodRow): PaymentMethod {
   return {
     id: row.id, type: row.type as PaymentMethod['type'], name: row.name, isDefault: row.is_default,
     cutoffDay: row.cutoff_day ?? undefined, paymentDay: row.payment_day ?? undefined,
+    updatedAt: row.updated_at,
   };
 }
 export function paymentMethodToRow(userId: string, m: PaymentMethod): PaymentMethodRow {
   return {
     id: m.id, user_id: userId, type: m.type, name: m.name, is_default: m.isDefault,
     cutoff_day: m.cutoffDay ?? null, payment_day: m.paymentDay ?? null,
+    updated_at: m.updatedAt || new Date().toISOString(),
   };
 }
 
@@ -104,7 +110,7 @@ export function transactionToRow(userId: string, t: Transaction): TransactionRow
 export interface RecurringRuleRow {
   id: string; user_id: string; name: string; type: string; amount: number;
   category_id: string | null; payment_method_id: string | null; frequency: string;
-  day_of_month: number | null; day_of_week: number | null; start_date: string; end_date: string | null; is_active: boolean;
+  day_of_month: number | null; day_of_week: number | null; start_date: string; end_date: string | null; is_active: boolean; updated_at: string;
 }
 export function recurringRuleFromRow(row: RecurringRuleRow): RecurringRule {
   return {
@@ -112,6 +118,7 @@ export function recurringRuleFromRow(row: RecurringRuleRow): RecurringRule {
     categoryId: row.category_id, paymentMethodId: row.payment_method_id, frequency: row.frequency as RecurringRule['frequency'],
     dayOfMonth: row.day_of_month ?? undefined, dayOfWeek: row.day_of_week ?? undefined,
     startDate: row.start_date, endDate: row.end_date ?? undefined, isActive: row.is_active,
+    updatedAt: row.updated_at,
   };
 }
 export function recurringRuleToRow(userId: string, r: RecurringRule): RecurringRuleRow {
@@ -120,6 +127,7 @@ export function recurringRuleToRow(userId: string, r: RecurringRule): RecurringR
     category_id: r.categoryId, payment_method_id: r.paymentMethodId, frequency: r.frequency,
     day_of_month: r.dayOfMonth ?? null, day_of_week: r.dayOfWeek ?? null,
     start_date: r.startDate, end_date: r.endDate ?? null, is_active: r.isActive,
+    updated_at: r.updatedAt || new Date().toISOString(),
   };
 }
 

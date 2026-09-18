@@ -32,7 +32,7 @@ export function InboxBanner() {
           <strong>{n} {n === 1 ? 'movimiento llegó solo' : 'movimientos llegaron solos'}</strong>
           {' '}— tócalo para revisarlo.
         </span>
-        <span aria-hidden style={{ color: 'var(--q25)', fontSize: 20 }}>›</span>
+        <span aria-hidden style={{ color: 'var(--q25-text)', fontSize: 20 }}>›</span>
       </button>
 
       {abierto && (

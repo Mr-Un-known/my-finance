@@ -55,7 +55,7 @@ function Arrow({ dir, onClick }: { dir: 'prev' | 'next'; onClick: () => void }) 
       aria-label={dir === 'prev' ? 'Mes anterior' : 'Mes siguiente'}
       style={{
         width: 'var(--tap)', height: 'var(--tap)', display: 'grid', placeItems: 'center',
-        border: 'none', background: 'none', color: 'var(--q10)', fontSize: 20,
+        border: 'none', background: 'none', color: 'var(--q10-text)', fontSize: 20,
         cursor: 'pointer', borderRadius: 'var(--radius-s)',
       }}
     >

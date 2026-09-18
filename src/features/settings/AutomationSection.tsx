@@ -128,7 +128,7 @@ export function AutomationSection() {
         El paso a paso completo está en docs/ATAJOS_IOS.md.
       </p>
 
-      {error && <p style={{ color: 'var(--danger)', fontSize: 'var(--text-sm)', marginTop: 8 }}>{error}</p>}
+      {error && <p style={{ color: 'var(--danger-text)', fontSize: 'var(--text-sm)', marginTop: 8 }}>{error}</p>}
     </section>
   );
 }

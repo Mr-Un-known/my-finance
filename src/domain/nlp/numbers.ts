@@ -132,7 +132,12 @@ export function buscarMonto(textoOriginal: string): MontoEncontrado | null {
   // 2. Todo en palabras: "cuarenta y cinco mil", "dos millones y medio"
   const tokens = texto.split(/\s+/);
   for (let inicio = 0; inicio < tokens.length; inicio++) {
-    for (let fin = tokens.length; fin > inicio; fin--) {
+    // Ventana acotada: una cifra hablada en español nunca pasa de unas
+    // ocho palabras ("doscientos cuarenta y cinco mil quinientos"). Sin
+    // cota esto era O(n^3) sobre el texto completo, y 2000 caracteres de
+    // palabras numericas tardaban ~380 ms por llamada — que se multiplica
+    // por cada entrada de la bandeja, en cada render.
+    for (let fin = Math.min(tokens.length, inicio + 8); fin > inicio; fin--) {
       const trozo = tokens.slice(inicio, fin);
       // Al menos una escala o un número; evita capturar "y" sueltas.
       if (!trozo.some((p) => p in UNIDADES || p in CIENTOS || p in ESCALAS)) continue;

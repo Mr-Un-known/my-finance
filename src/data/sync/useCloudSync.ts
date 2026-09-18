@@ -71,9 +71,14 @@ export function useCloudSync() {
 
   // Registrar el disparador manual mientras este hook esté montado.
   useEffect(() => {
-    forzarSyncActual = () => void sincronizar(true);
+    const mio = () => void sincronizar(true);
+    forzarSyncActual = mio;
+    // Comparar identidad, no "hay algo seteado": si algun dia este hook se
+    // monta en dos lugares, el cleanup del primero borraria el callback que
+    // el segundo acaba de registrar y "Sincronizar ahora" quedaria mudo sin
+    // ningun error visible.
     return () => {
-      if (forzarSyncActual) forzarSyncActual = null;
+      if (forzarSyncActual === mio) forzarSyncActual = null;
     };
   }, [sincronizar]);
 

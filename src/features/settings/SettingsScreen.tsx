@@ -11,6 +11,7 @@ import { ImportPreviewSheet } from './ImportPreviewSheet';
 import { CloudSection } from './CloudSection';
 import { AutomationSection } from './AutomationSection';
 import { NotificationsSection } from '@/features/notifications/NotificationsSection';
+import { VACIO } from '@/lib/vacio';
 
 const THEMES: Array<{ value: Settings['theme']; label: string }> = [
   { value: 'system', label: 'Sistema' },
@@ -20,7 +21,7 @@ const THEMES: Array<{ value: Settings['theme']; label: string }> = [
 
 export function SettingsScreen() {
   const settings = useLiveQuery(() => localRepository.getSettings(), []);
-  const paymentMethods = useLiveQuery(() => localRepository.listPaymentMethods(), []) ?? [];
+  const paymentMethods = useLiveQuery(() => localRepository.listPaymentMethods(), []) ?? VACIO;
   const creditMethod = paymentMethods.find((m) => m.type === 'credit');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -202,7 +203,7 @@ export function SettingsScreen() {
         </button>
         <input ref={fileInputRef} type="file" accept="application/json" onChange={handleFileChange} style={{ display: 'none' }} />
         {importState.status === 'error' && (
-          <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 8 }}>{importState.message}</p>
+          <p style={{ color: 'var(--danger-text)', fontSize: 12, marginTop: 8 }}>{importState.message}</p>
         )}
       </section>
 

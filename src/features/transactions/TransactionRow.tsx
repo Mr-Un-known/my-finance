@@ -52,7 +52,7 @@ export function TransactionRow({
         style={{
           width: 26, height: 26, minWidth: 26, borderRadius: 13, flex: 'none',
           border: `1.5px solid ${isPaid ? 'var(--positive)' : 'var(--line-strong)'}`,
-          background: isPaid ? 'var(--positive)' : 'transparent',
+          background: isPaid ? 'var(--positive-text)' : 'transparent',
           color: isPaid ? '#fff' : 'transparent',
           display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: 14,
           transition: 'all var(--dur-fast) var(--ease-spring-out)',
@@ -86,7 +86,7 @@ export function TransactionRow({
             </span>
             <span
               className="figures"
-              style={{ flex: 'none', fontWeight: 700, fontSize: 'var(--text-md)', color: isIncome ? 'var(--positive)' : 'var(--text)' }}
+              style={{ flex: 'none', fontWeight: 700, fontSize: 'var(--text-md)', color: isIncome ? 'var(--positive-text)' : 'var(--text)' }}
             >
               {isIncome ? '+ ' : ''}{formatMoney(tx.amount)}
             </span>
@@ -107,7 +107,7 @@ export function TransactionRow({
           </span>
 
           {isCredit && tx.cyclePaymentDate && (
-            <span style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--q25)', marginTop: 1 }}>
+            <span style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--q25-text)', marginTop: 1 }}>
               se paga el {shortDate(tx.cyclePaymentDate)}
             </span>
           )}

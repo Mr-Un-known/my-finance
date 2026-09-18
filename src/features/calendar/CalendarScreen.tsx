@@ -7,6 +7,7 @@ import { formatMoney } from '@/domain/money/format';
 import { formatShortDate } from '@/lib/formatShortDate';
 import { todayISO } from '@/lib/todayISO';
 import { buildCalendarGrid, shiftMonthISO } from './calendarGrid';
+import { VACIO } from '@/lib/vacio';
 
 const WEEKDAYS = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
 const MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -17,8 +18,8 @@ export function CalendarScreen() {
   const [view, setView] = useState({ year, month });
   const [selected, setSelected] = useState(today);
 
-  const transactions = useLiveQuery(() => db.transactions.toArray(), []) ?? [];
-  const categories = useLiveQuery(() => localRepository.listCategories(), []) ?? [];
+  const transactions = useLiveQuery(() => db.transactions.toArray(), []) ?? VACIO;
+  const categories = useLiveQuery(() => localRepository.listCategories(), []) ?? VACIO;
   const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
   const markersByDate = useMemo(() => {
@@ -76,7 +77,7 @@ export function CalendarScreen() {
             >
               <span style={{ fontSize: 13, fontWeight: isToday ? 700 : 500 }}>{dayNum}</span>
               <span style={{ display: 'flex', gap: 2, height: 4 }}>
-                {marker?.income && <Dot color={isSelected ? 'var(--surface)' : 'var(--positive)'} />}
+                {marker?.income && <Dot color={isSelected ? 'var(--surface)' : 'var(--positive-text)'} />}
                 {marker?.expense && <Dot color={isSelected ? 'var(--surface)' : 'var(--text-muted)'} />}
                 {marker?.tcPayment && <Dot color={isSelected ? 'var(--surface)' : 'var(--q25)'} />}
               </span>
@@ -99,7 +100,7 @@ export function CalendarScreen() {
               <div key={tx.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
                 <span aria-hidden style={{ fontSize: 18 }}>{cat?.icon ?? '✳️'}</span>
                 <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tx.concept}</span>
-                <span className="figures" style={{ fontWeight: 600, color: tx.type === 'income' ? 'var(--positive)' : 'var(--text)' }}>
+                <span className="figures" style={{ fontWeight: 600, color: tx.type === 'income' ? 'var(--positive-text)' : 'var(--text)' }}>
                   {tx.type === 'income' ? '+' : ''}{formatMoney(tx.amount)}
                 </span>
               </div>
@@ -108,7 +109,7 @@ export function CalendarScreen() {
           {dayPayments.map((tx) => (
             <div key={`pay-${tx.id}`} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
               <span aria-hidden style={{ fontSize: 18 }}>💳</span>
-              <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--q25)' }}>
+              <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--q25-text)' }}>
                 Pago TC: {tx.concept}
               </span>
               <span className="figures" style={{ fontWeight: 600 }}>{formatMoney(tx.amount)}</span>

@@ -46,7 +46,7 @@ export function CloudSection() {
       <button
         type="button"
         onClick={() => { void getSupabase().then((supabase) => supabase.auth.signOut()); }}
-        style={{ ...btnStyle, width: '100%', color: 'var(--danger)' }}
+        style={{ ...btnStyle, width: '100%', color: 'var(--danger-text)' }}
       >
         Cerrar sesión
       </button>

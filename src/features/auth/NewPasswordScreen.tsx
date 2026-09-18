@@ -64,7 +64,7 @@ export function NewPasswordScreen() {
         </p>
 
         {listo ? (
-          <p role="status" style={{ textAlign: 'center', color: 'var(--positive)', fontWeight: 600 }}>
+          <p role="status" style={{ textAlign: 'center', color: 'var(--positive-text)', fontWeight: 600 }}>
             Contraseña actualizada. Entrando…
           </p>
         ) : (
@@ -83,11 +83,11 @@ export function NewPasswordScreen() {
               aria-label="Repetir la contraseña"
               style={{
                 ...inputStyle,
-                borderColor: repetir.length > 0 && !coinciden ? 'var(--danger)' : 'var(--line-strong)',
+                borderColor: repetir.length > 0 && !coinciden ? 'var(--danger-text)' : 'var(--line-strong)',
               }}
             />
             {repetir.length > 0 && !coinciden && (
-              <p style={{ margin: '-4px 0 10px', fontSize: 'var(--text-sm)', color: 'var(--danger)' }}>
+              <p style={{ margin: '-4px 0 10px', fontSize: 'var(--text-sm)', color: 'var(--danger-text)' }}>
                 Las dos contraseñas no son iguales.
               </p>
             )}
@@ -105,7 +105,7 @@ export function NewPasswordScreen() {
         )}
 
         {error && (
-          <p role="alert" style={{ color: 'var(--danger)', fontSize: 'var(--text-sm)', marginTop: 12, textAlign: 'center' }}>
+          <p role="alert" style={{ color: 'var(--danger-text)', fontSize: 'var(--text-sm)', marginTop: 12, textAlign: 'center' }}>
             {error}
           </p>
         )}

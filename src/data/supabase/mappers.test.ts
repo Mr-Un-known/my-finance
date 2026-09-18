@@ -27,7 +27,7 @@ describe('settings round-trip', () => {
 describe('category round-trip', () => {
   it('conserva icono, color y kind', () => {
     const category: Category = {
-      id: 'c1', name: 'Hogar', icon: '🏠', color: '#5B6FE0', kind: 'both', isArchived: false, sortOrder: 3,
+      id: 'c1', name: 'Hogar', icon: '🏠', color: '#5B6FE0', kind: 'both', isArchived: false, sortOrder: 3, updatedAt: '2026-09-18T12:00:00.000Z',
     };
     expect(categoryFromRow(categoryToRow(USER, category))).toEqual(category);
   });
@@ -35,10 +35,10 @@ describe('category round-trip', () => {
 
 describe('paymentMethod round-trip', () => {
   it('conserva cutoffDay/paymentDay, incluso cuando estan ausentes', () => {
-    const debit: PaymentMethod = { id: 'pm-1', type: 'debit', name: 'Débito', isDefault: true };
+    const debit: PaymentMethod = { id: 'pm-1', type: 'debit', name: 'Débito', isDefault: true, updatedAt: 'T' };
     expect(paymentMethodFromRow(paymentMethodToRow(USER, debit))).toEqual(debit);
 
-    const credit: PaymentMethod = { id: 'pm-2', type: 'credit', name: 'TC', isDefault: false, cutoffDay: 15, paymentDay: 2 };
+    const credit: PaymentMethod = { id: 'pm-2', type: 'credit', name: 'TC', isDefault: false, cutoffDay: 15, paymentDay: 2, updatedAt: 'T' };
     expect(paymentMethodFromRow(paymentMethodToRow(USER, credit))).toEqual(credit);
   });
 });
@@ -69,7 +69,7 @@ describe('recurringRule round-trip', () => {
     const rule: RecurringRule = {
       id: 'r1', name: 'Arriendo', type: 'expense', amount: 2_500_000, categoryId: 'cat-hogar',
       paymentMethodId: 'pm-debito', frequency: 'monthly', dayOfMonth: 1, startDate: '2026-01-01',
-      endDate: '2026-12-31', isActive: true,
+      endDate: '2026-12-31', isActive: true, updatedAt: '2026-09-18T12:00:00.000Z',
     };
     expect(recurringRuleFromRow(recurringRuleToRow(USER, rule))).toEqual(rule);
   });

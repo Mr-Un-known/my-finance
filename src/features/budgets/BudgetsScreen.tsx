@@ -10,9 +10,10 @@ import { calculateSpendByCategory } from '@/domain/totals/byCategory';
 import type { Category } from '@/domain/types';
 import { todayISO } from '@/lib/todayISO';
 import { BudgetAmountSheet } from './BudgetAmountSheet';
+import { VACIO } from '@/lib/vacio';
 
 const STATE_COLOR: Record<'ok' | 'warning' | 'exceeded', string> = {
-  ok: 'var(--positive)', warning: 'var(--q25)', exceeded: 'var(--danger)',
+  ok: 'var(--positive-text)', warning: 'var(--q25)', exceeded: 'var(--danger-text)',
 };
 
 export function BudgetsScreen() {
@@ -20,9 +21,9 @@ export function BudgetsScreen() {
   const today = todayISO();
   const [year, month] = today.split('-').map(Number) as [number, number];
 
-  const categories = useLiveQuery(() => localRepository.listCategories(), []) ?? [];
-  const budgets = useLiveQuery(() => localRepository.listBudgets(year, month), [year, month]) ?? [];
-  const transactions = useLiveQuery(() => db.transactions.toArray(), []) ?? [];
+  const categories = useLiveQuery(() => localRepository.listCategories(), []) ?? VACIO;
+  const budgets = useLiveQuery(() => localRepository.listBudgets(year, month), [year, month]) ?? VACIO;
+  const transactions = useLiveQuery(() => db.transactions.toArray(), []) ?? VACIO;
   const [editing, setEditing] = useState<Category | null>(null);
 
   const monthPrefix = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}`;
@@ -96,7 +97,7 @@ export function BudgetsScreen() {
                 <div style={{ height: '100%', width: `${pct}%`, background: STATE_COLOR[status.state], borderRadius: 3 }} />
               </div>
               {status.state === 'exceeded' && (
-                <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--danger)' }}>
+                <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--danger-text)' }}>
                   Superado por {formatMoney(Math.abs(status.remaining))}
                 </p>
               )}

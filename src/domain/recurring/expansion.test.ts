@@ -14,6 +14,7 @@ function rule(overrides: Partial<RecurringRule>): RecurringRule {
     dayOfMonth: 1,
     startDate: '2026-01-01',
     isActive: true,
+    updatedAt: '',
     ...overrides,
   };
 }

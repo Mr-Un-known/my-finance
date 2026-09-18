@@ -8,11 +8,12 @@ import { formatMoney } from '@/domain/money/format';
 import { calculateSpendByCategory } from '@/domain/totals/byCategory';
 import type { Category } from '@/domain/types';
 import { CategoryForm } from './CategoryForm';
+import { VACIO } from '@/lib/vacio';
 
 export function CategoriesScreen() {
   const navigate = useNavigate();
-  const categories = useLiveQuery(() => localRepository.listCategories(), []) ?? [];
-  const transactions = useLiveQuery(() => db.transactions.toArray(), []) ?? [];
+  const categories = useLiveQuery(() => localRepository.listCategories(), []) ?? VACIO;
+  const transactions = useLiveQuery(() => db.transactions.toArray(), []) ?? VACIO;
   const [editing, setEditing] = useState<Category | null>(null);
   const [creating, setCreating] = useState(false);
 

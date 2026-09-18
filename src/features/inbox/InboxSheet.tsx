@@ -11,6 +11,7 @@ import { categoriaFinal, metodoPorTipo } from '@/domain/nlp/resolve';
 import type { Transaction } from '@/domain/types';
 import { haptic } from '@/lib/haptic';
 import { nowISO, todayISO } from '@/lib/todayISO';
+import { VACIO } from '@/lib/vacio';
 
 const ICONO_ORIGEN: Record<string, string> = {
   sms: '💬',
@@ -33,9 +34,9 @@ export function InboxSheet({ entradas, onClose, onCambio }: {
   const [procesando, setProcesando] = useState<string | null>(null);
 
   const settings = useLiveQuery(() => localRepository.getSettings(), []) ?? DEFAULT_SETTINGS;
-  const categorias = useLiveQuery(() => localRepository.listCategories(), []) ?? [];
-  const metodos = useLiveQuery(() => localRepository.listPaymentMethods(), []) ?? [];
-  const conceptIndex = useLiveQuery(() => db.conceptIndex.toArray(), []) ?? [];
+  const categorias = useLiveQuery(() => localRepository.listCategories(), []) ?? VACIO;
+  const metodos = useLiveQuery(() => localRepository.listPaymentMethods(), []) ?? VACIO;
+  const conceptIndex = useLiveQuery(() => db.conceptIndex.toArray(), []) ?? VACIO;
   const hoy = todayISO();
   const idsCategorias = useMemo(() => categorias.map((c) => c.id), [categorias]);
 
@@ -151,7 +152,7 @@ export function InboxSheet({ entradas, onClose, onCambio }: {
                 <span style={{ flex: 1, fontSize: 'var(--text-md)', fontWeight: 600 }}>{desc.resumen}</span>
               </div>
               {desc.falta && (
-                <p style={{ margin: '0 0 6px', fontSize: 'var(--text-sm)', color: 'var(--danger)' }}>
+                <p style={{ margin: '0 0 6px', fontSize: 'var(--text-sm)', color: 'var(--danger-text)' }}>
                   {desc.falta} No pude sacarlo del mensaje.
                 </p>
               )}

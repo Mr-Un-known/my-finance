@@ -22,7 +22,7 @@ export function ImportPreviewSheet({ preview, onConfirm, onCancel }: {
           <li>{preview.budgets} presupuestos</li>
         </ul>
         <div style={{ background: 'var(--danger-soft)', border: '1px solid var(--danger)', borderRadius: 'var(--radius-s)', padding: 12, marginBottom: 16 }}>
-          <p style={{ margin: 0, fontSize: 13, color: 'var(--danger)' }}>
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--danger-text)' }}>
             Esto <strong>reemplaza todos tus datos actuales</strong> por los del archivo. No se puede deshacer.
           </p>
         </div>

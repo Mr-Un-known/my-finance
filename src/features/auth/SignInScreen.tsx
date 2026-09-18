@@ -128,8 +128,8 @@ export function SignInScreen() {
           </button>
         )}
 
-        {error && <p role="alert" style={{ color: 'var(--danger)', fontSize: 'var(--text-sm)', marginTop: 12, textAlign: 'center' }}>{error}</p>}
-        {aviso && <p style={{ color: 'var(--positive)', fontSize: 'var(--text-sm)', marginTop: 12, textAlign: 'center' }}>{aviso}</p>}
+        {error && <p role="alert" style={{ color: 'var(--danger-text)', fontSize: 'var(--text-sm)', marginTop: 12, textAlign: 'center' }}>{error}</p>}
+        {aviso && <p style={{ color: 'var(--positive-text)', fontSize: 'var(--text-sm)', marginTop: 12, textAlign: 'center' }}>{aviso}</p>}
       </div>
     </div>
   );

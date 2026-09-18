@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Category, Frequency, PaymentMethod, RecurringRule, TransactionType } from '@/domain/types';
 import { parseMoney } from '@/domain/money/format';
 import { todayISO } from '@/lib/todayISO';
+import { Field, FieldGroup } from '@/components/ui/Field';
 
 const FREQUENCIES: Array<{ value: Frequency; label: string }> = [
   { value: 'monthly', label: 'Mensual' },
@@ -52,6 +53,8 @@ export function RecurringRuleForm({
       startDate,
       endDate: hasEnd && endDate ? endDate : undefined,
       isActive,
+      // La fecha real la estampa localRepository.saveRecurringRule.
+      updatedAt: existing?.updatedAt ?? '',
     });
   }
 
@@ -76,55 +79,57 @@ export function RecurringRuleForm({
           ))}
         </div>
 
-        <label style={fieldLabel}>Nombre</label>
-        <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. Arriendo" style={inputStyle} />
+        <Field label="Nombre" htmlFor="rr-nombre">
+          <input id="rr-nombre" autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. Arriendo" style={inputStyle} />
+        </Field>
         {touched && !name.trim() && <p style={errorText}>Ponle un nombre.</p>}
 
-        <label style={fieldLabel}>Valor</label>
-        <input value={amountText} onChange={(e) => setAmountText(e.target.value)} placeholder="$ 0" inputMode="numeric" className="figures" style={inputStyle} />
+        <Field label="Valor" htmlFor="rr-valor">
+          <input id="rr-valor" value={amountText} onChange={(e) => setAmountText(e.target.value)} placeholder="$ 0" inputMode="numeric" className="figures" style={inputStyle} />
+        </Field>
         {touched && (amount === null || amount <= 0) && <p style={errorText}>Ingresa un valor válido.</p>}
 
-        <label style={fieldLabel}>Categoría</label>
-        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, marginBottom: 14 }}>
+        <FieldGroup label="Categoría" id="rr-categoria" style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, marginBottom: 14 }}>
           {categories.filter((c) => c.kind === 'both' || c.kind === type).map((c) => (
             <button key={c.id} type="button" onClick={() => setCategoryId(c.id)} aria-pressed={categoryId === c.id}
               style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--tap)', padding: '0 12px', borderRadius: 999, border: `1.5px solid ${categoryId === c.id ? c.color : 'var(--line)'}`, background: categoryId === c.id ? `color-mix(in srgb, ${c.color} 16%, var(--surface))` : 'var(--surface)', color: categoryId === c.id ? c.color : 'var(--text)', fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
               <span aria-hidden>{c.icon}</span>{c.name}
             </button>
           ))}
-        </div>
+        </FieldGroup>
 
-        <label style={fieldLabel}>Método de pago</label>
-        <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+        <FieldGroup label="Método de pago" id="rr-metodo" style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
           {paymentMethods.map((m) => (
             <button key={m.id} type="button" onClick={() => setPaymentMethodId(m.id)} aria-pressed={paymentMethodId === m.id} style={segmentStyle(paymentMethodId === m.id)}>
               {m.name}
             </button>
           ))}
-        </div>
+        </FieldGroup>
 
-        <label style={fieldLabel}>Frecuencia</label>
-        <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+        <FieldGroup label="Frecuencia" id="rr-frecuencia" style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
           {FREQUENCIES.map((f) => (
             <button key={f.value} type="button" onClick={() => setFrequency(f.value)} aria-pressed={frequency === f.value} style={segmentStyle(frequency === f.value)}>
               {f.label}
             </button>
           ))}
-        </div>
+        </FieldGroup>
 
         {needsDayOfMonth && (
           <>
-            <label style={fieldLabel}>Día del mes</label>
-            <input
-              type="number" min={1} max={31} value={dayOfMonth}
-              onChange={(e) => setDayOfMonth(Math.min(31, Math.max(1, Number(e.target.value) || 1)))}
-              style={inputStyle}
-            />
+            <Field label="Día del mes" htmlFor="rr-dia">
+              <input
+                id="rr-dia"
+                type="number" min={1} max={31} value={dayOfMonth}
+                onChange={(e) => setDayOfMonth(Math.min(31, Math.max(1, Number(e.target.value) || 1)))}
+                style={inputStyle}
+              />
+            </Field>
           </>
         )}
 
-        <label style={fieldLabel}>Empieza el</label>
-        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={inputStyle} />
+        <Field label="Empieza el" htmlFor="rr-inicio">
+          <input id="rr-inicio" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={inputStyle} />
+        </Field>
 
         <button
           type="button"
@@ -136,7 +141,7 @@ export function RecurringRuleForm({
           <ToggleDot on={hasEnd} />
         </button>
         {hasEnd && (
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={inputStyle} />
+          <input aria-label="Fecha de fin" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={inputStyle} />
         )}
 
         <button
@@ -152,7 +157,7 @@ export function RecurringRuleForm({
         <button type="button" onClick={handleSubmit} disabled={!canSave} style={saveButtonStyle(canSave)}>Guardar</button>
 
         {existing && onDelete && (
-          <button type="button" onClick={onDelete} style={{ width: '100%', minHeight: 44, marginTop: 10, borderRadius: 'var(--radius-s)', border: '1px solid var(--line-strong)', background: 'var(--surface)', color: 'var(--danger)', fontWeight: 600, cursor: 'pointer' }}>
+          <button type="button" onClick={onDelete} style={{ width: '100%', minHeight: 44, marginTop: 10, borderRadius: 'var(--radius-s)', border: '1px solid var(--line-strong)', background: 'var(--surface)', color: 'var(--danger-text)', fontWeight: 600, cursor: 'pointer' }}>
             Eliminar regla
           </button>
         )}
@@ -169,9 +174,8 @@ function ToggleDot({ on, activeColor = 'var(--text)' }: { on: boolean; activeCol
   );
 }
 
-const fieldLabel: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', margin: '0 0 6px' };
 const inputStyle: React.CSSProperties = { width: '100%', minHeight: 'var(--tap)', padding: '0 12px', marginBottom: 14, borderRadius: 'var(--radius-s)', border: '1px solid var(--line-strong)', background: 'var(--surface)', color: 'var(--text)', fontSize: 16 };
-const errorText: React.CSSProperties = { margin: '-10px 0 10px', fontSize: 12, color: 'var(--danger)' };
+const errorText: React.CSSProperties = { margin: '-10px 0 10px', fontSize: 12, color: 'var(--danger-text)' };
 function segmentStyle(active: boolean): React.CSSProperties {
   return { flex: 1, minHeight: 'var(--tap)', borderRadius: 'var(--radius-s)', border: '1px solid var(--line-strong)', background: active ? 'var(--text)' : 'var(--surface)', color: active ? 'var(--surface)' : 'var(--text)', fontWeight: 600, cursor: 'pointer', fontSize: 13 };
 }

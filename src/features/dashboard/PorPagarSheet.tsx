@@ -1,29 +1,31 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Transaction } from '@/domain/types';
+import type { PorPagar } from '@/domain/totals/porPagar';
 import { formatMoney } from '@/domain/money/format';
 
 /**
- * Sheet de desglose del chip "Por pagar". Muestra 3 líneas con counts +
- * montos por estado. Tap → navega a Movimientos filtrado.
+ * Sheet de desglose del chip "Por pagar".
+ *
+ * Recibe el desglose YA calculado, con los conjuntos disjuntos. Antes
+ * recibía tres listas que se solapaban y volvía a sumarlas acá, así que
+ * mostraba más plata que el número que lo abrió y listaba el mismo
+ * movimiento dos veces. Ver domain/totals/porPagar.ts.
  */
 export function PorPagarSheet({
-  pendientes,
-  programados,
-  enTC,
+  porPagar,
   onClose,
 }: {
-  pendientes: Transaction[];
-  programados: Transaction[];
-  enTC: Transaction[];
+  porPagar: PorPagar;
   onClose: () => void;
 }) {
   const navigate = useNavigate();
   const [showHelp, setShowHelp] = useState(false);
 
+  const { pendientes, programados, enTarjeta: enTC } = porPagar;
   const sum = (arr: Transaction[]) => arr.reduce((a, t) => a + t.amount, 0);
-  const total = pendientes.length + programados.length + enTC.length;
-  const totalAmount = sum(pendientes) + sum(programados) + sum(enTC);
+  const total = porPagar.count;
+  const totalAmount = porPagar.monto;
 
   return (
     <div

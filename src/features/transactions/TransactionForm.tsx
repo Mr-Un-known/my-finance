@@ -7,7 +7,10 @@ import { nowISO, todayISO } from '@/lib/todayISO';
 import { formatShortDate } from '@/lib/formatShortDate';
 import { db } from '@/data/db';
 import { inferFromConcept, topRecents, normalize, type ConceptIndexEntry } from '@/domain/inference/conceptInference';
+import { categoryColor } from '@/domain/seed/categoryColor';
 import { haptic } from '@/lib/haptic';
+import { Field, FieldGroup } from '@/components/ui/Field';
+import { VACIO } from '@/lib/vacio';
 
 function shortDate(iso: string): string {
   const { day, month } = formatShortDate(iso);
@@ -96,7 +99,7 @@ export function TransactionForm({
   const [inferredKey, setInferredKey] = useState<string | null>(null);
   const debounceRef = useRef<number | null>(null);
 
-  const conceptIndex = useLiveQuery(() => db.conceptIndex.toArray(), []) ?? [];
+  const conceptIndex = useLiveQuery(() => db.conceptIndex.toArray(), []) ?? VACIO;
   const recents = useMemo(() => topRecents(conceptIndex, 5), [conceptIndex]);
 
   const amount = parseMoney(value.amountText);
@@ -232,7 +235,7 @@ export function TransactionForm({
               fontSize: 'var(--text-sm)', fontWeight: 700,
               padding: '4px 10px', borderRadius: 12,
               background: isIncome ? 'var(--positive-soft)' : 'var(--surface-sunken)',
-              color: isIncome ? 'var(--positive)' : 'var(--text-muted)',
+              color: isIncome ? 'var(--positive-text)' : 'var(--text-muted)',
               letterSpacing: '0.02em', textTransform: 'uppercase',
             }}
           >
@@ -255,7 +258,7 @@ export function TransactionForm({
             width: '100%', border: 'none', background: 'none', outline: 'none',
             textAlign: 'center', margin: '12px 0 4px', padding: 0,
             fontSize: 'var(--text-3xl)', fontWeight: 700, letterSpacing: '-0.022em', lineHeight: 1.1,
-            color: isIncome ? 'var(--positive)' : (amount && amount > 0 ? 'var(--text)' : 'var(--text-faint)'),
+            color: isIncome ? 'var(--positive-text)' : (amount && amount > 0 ? 'var(--text)' : 'var(--text-faint)'),
           }}
         />
         <p style={{ margin: '0 0 14px', textAlign: 'center', fontSize: 'var(--text-xs)', color: 'var(--text-faint)' }}>
@@ -266,8 +269,7 @@ export function TransactionForm({
         {/* Chips de recientes — solo cuando NO editás y hay historial */}
         {!existing && recents.length > 0 && (
           <>
-            <label style={fieldLabel}>Usar reciente</label>
-            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 14 }}>
+            <FieldGroup label="Usar reciente" id="tx-recientes" style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 14 }}>
               {recents.map((r) => {
                 const cat = r.categoryId ? categories.find((c) => c.id === r.categoryId) : null;
                 return (
@@ -288,21 +290,22 @@ export function TransactionForm({
                   </button>
                 );
               })}
-            </div>
+            </FieldGroup>
           </>
         )}
 
-        <label style={fieldLabel}>Concepto</label>
+        <Field label="Concepto" htmlFor="tx-concepto">
         <input
+          id="tx-concepto"
           value={value.concept}
           onChange={(e) => setValue((v) => ({ ...v, concept: e.target.value }))}
           placeholder="Ej. Restaurante"
           style={inputStyle}
         />
+        </Field>
         {touched && !value.concept.trim() && <p style={errorText}>Escribe qué es.</p>}
 
-        <label style={fieldLabel}>Categoría</label>
-        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, marginBottom: 14 }}>
+        <FieldGroup label="Categoría" id="tx-categoria" style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, marginBottom: 14 }}>
           {categories.filter((c) => c.kind === 'both' || c.kind === value.type).map((c) => (
             <button
               key={c.id}
@@ -312,9 +315,9 @@ export function TransactionForm({
               style={{
                 flex: 'none', display: 'flex', alignItems: 'center', gap: 6,
                 minHeight: 'var(--tap)', padding: '0 12px', borderRadius: 999,
-                border: `1.5px solid ${value.categoryId === c.id ? c.color : 'var(--line)'}`,
-                background: value.categoryId === c.id ? `color-mix(in srgb, ${c.color} 16%, var(--surface))` : 'var(--surface)',
-                color: value.categoryId === c.id ? c.color : 'var(--text)',
+                border: `1.5px solid ${value.categoryId === c.id ? categoryColor(c) : 'var(--line)'}`,
+                background: value.categoryId === c.id ? `color-mix(in srgb, ${categoryColor(c)} 16%, var(--surface))` : 'var(--surface)',
+                color: value.categoryId === c.id ? categoryColor(c) : 'var(--text)',
                 fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
                 transition: 'all var(--dur-fast) var(--ease-spring-out)',
               }}
@@ -322,10 +325,9 @@ export function TransactionForm({
               <span aria-hidden>{c.icon}</span>{c.name}
             </button>
           ))}
-        </div>
+        </FieldGroup>
 
-        <label style={fieldLabel}>Método de pago</label>
-        <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+        <FieldGroup label="Método de pago" id="tx-metodo" style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
           {availableMethods.map((m) => (
             <button
               key={m.id}
@@ -337,20 +339,22 @@ export function TransactionForm({
               {m.name}
             </button>
           ))}
-        </div>
+        </FieldGroup>
         {isCredit && paymentPreview && (
-          <p style={{ margin: '0 0 14px', fontSize: 'var(--text-sm)', color: 'var(--q25)', fontWeight: 600 }}>
+          <p style={{ margin: '0 0 14px', fontSize: 'var(--text-sm)', color: 'var(--q25-text)', fontWeight: 600 }}>
             Se paga el {shortDate(paymentPreview)}
           </p>
         )}
 
-        <label style={fieldLabel}>Fecha</label>
-        <input
-          type="date"
-          value={value.date}
-          onChange={(e) => setValue((v) => ({ ...v, date: e.target.value }))}
-          style={inputStyle}
-        />
+        <Field label="Fecha" htmlFor="tx-fecha">
+          <input
+            id="tx-fecha"
+            type="date"
+            value={value.date}
+            onChange={(e) => setValue((v) => ({ ...v, date: e.target.value }))}
+            style={inputStyle}
+          />
+        </Field>
 
         <button
           type="button"
@@ -366,7 +370,7 @@ export function TransactionForm({
           <span
             aria-hidden
             style={{
-              width: 44, height: 26, borderRadius: 13, background: value.markPaidNow ? 'var(--positive)' : 'var(--surface-sunken)',
+              width: 44, height: 26, borderRadius: 13, background: value.markPaidNow ? 'var(--positive-text)' : 'var(--surface-sunken)',
               border: '1px solid var(--line)', position: 'relative', transition: 'background var(--dur-fast)',
             }}
           >
@@ -387,7 +391,7 @@ export function TransactionForm({
               <button type="button" onClick={onDuplicate} style={secondaryButtonStyle}>Duplicar</button>
             )}
             {onDelete && (
-              <button type="button" onClick={onDelete} style={{ ...secondaryButtonStyle, color: 'var(--danger)' }}>
+              <button type="button" onClick={onDelete} style={{ ...secondaryButtonStyle, color: 'var(--danger-text)' }}>
                 Eliminar
               </button>
             )}
@@ -398,16 +402,12 @@ export function TransactionForm({
   );
 }
 
-const fieldLabel: React.CSSProperties = {
-  display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', margin: '0 0 6px',
-  textTransform: 'uppercase', letterSpacing: '0.03em',
-};
 const inputStyle: React.CSSProperties = {
   width: '100%', minHeight: 'var(--tap)', padding: '0 12px', marginBottom: 14,
   borderRadius: 'var(--radius-s)', border: '1px solid var(--line-strong)',
   background: 'var(--surface)', color: 'var(--text)', fontSize: 16,
 };
-const errorText: React.CSSProperties = { margin: '-10px 0 10px', fontSize: 'var(--text-xs)', color: 'var(--danger)' };
+const errorText: React.CSSProperties = { margin: '-10px 0 10px', fontSize: 'var(--text-xs)', color: 'var(--danger-text)' };
 
 function segmentStyle(active: boolean): React.CSSProperties {
   return {

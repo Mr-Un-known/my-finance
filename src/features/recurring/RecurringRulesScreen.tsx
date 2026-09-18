@@ -8,6 +8,7 @@ import { materializeRecurringRules } from '@/data/local/materialize';
 import { formatMoney } from '@/domain/money/format';
 import type { RecurringRule } from '@/domain/types';
 import { RecurringRuleForm } from './RecurringRuleForm';
+import { VACIO } from '@/lib/vacio';
 
 const FREQ_LABEL: Record<RecurringRule['frequency'], string> = {
   monthly: 'Mensual', weekly: 'Semanal', biweekly: 'Quincenal', yearly: 'Anual',
@@ -16,9 +17,9 @@ const FREQ_LABEL: Record<RecurringRule['frequency'], string> = {
 export function RecurringRulesScreen() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
-  const rules = useLiveQuery(() => localRepository.listRecurringRules(), []) ?? [];
-  const categories = useLiveQuery(() => localRepository.listCategories(), []) ?? [];
-  const paymentMethods = useLiveQuery(() => localRepository.listPaymentMethods(), []) ?? [];
+  const rules = useLiveQuery(() => localRepository.listRecurringRules(), []) ?? VACIO;
+  const categories = useLiveQuery(() => localRepository.listCategories(), []) ?? VACIO;
+  const paymentMethods = useLiveQuery(() => localRepository.listPaymentMethods(), []) ?? VACIO;
   const [editing, setEditing] = useState<RecurringRule | null>(null);
   const [creating, setCreating] = useState(false);
 
@@ -71,7 +72,7 @@ export function RecurringRulesScreen() {
                   {FREQ_LABEL[r.frequency]}{r.dayOfMonth ? ` · día ${r.dayOfMonth}` : ''}{!r.isActive ? ' · Pausado' : ''}
                 </span>
               </span>
-              <span className="figures" style={{ fontWeight: 600, color: r.type === 'income' ? 'var(--positive)' : 'var(--text)' }}>
+              <span className="figures" style={{ fontWeight: 600, color: r.type === 'income' ? 'var(--positive-text)' : 'var(--text)' }}>
                 {r.type === 'income' ? '+' : ''}{formatMoney(r.amount)}
               </span>
             </button>

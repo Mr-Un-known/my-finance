@@ -38,7 +38,7 @@ export function NotificationsSection() {
           {busy ? 'Activando…' : 'Activar recordatorios'}
         </button>
       )}
-      {error && <p style={{ fontSize: 12, color: 'var(--danger)', marginTop: 8 }}>{error}</p>}
+      {error && <p style={{ fontSize: 12, color: 'var(--danger-text)', marginTop: 8 }}>{error}</p>}
     </section>
   );
 }

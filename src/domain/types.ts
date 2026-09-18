@@ -48,6 +48,13 @@ export interface Category {
   kind: 'expense' | 'income' | 'both';
   isArchived: boolean;
   sortOrder: number;
+  /**
+   * Cuando se guardo por ultima vez. Lo necesita la sincronizacion: sin
+   * esto, bajar de la nube pisaba lo local a ciegas y cada edicion se
+   * deshacia sola en el siguiente ciclo (que siempre empieza por bajar).
+   * Vacio = nunca se guardo, y pierde contra cualquier fecha real.
+   */
+  updatedAt: string;
 }
 
 export interface PaymentMethod {
@@ -58,6 +65,13 @@ export interface PaymentMethod {
   /** Solo si type === 'credit'. Configurables, nunca hardcodeados. */
   cutoffDay?: number; // 15
   paymentDay?: number; // 2
+  /**
+   * Cuando se guardo por ultima vez. Lo necesita la sincronizacion: sin
+   * esto, bajar de la nube pisaba lo local a ciegas y cada edicion se
+   * deshacia sola en el siguiente ciclo (que siempre empieza por bajar).
+   * Vacio = nunca se guardo, y pierde contra cualquier fecha real.
+   */
+  updatedAt: string;
 }
 
 export interface Transaction {
@@ -99,6 +113,13 @@ export interface RecurringRule {
   startDate: ISODate;
   endDate?: ISODate;
   isActive: boolean;
+  /**
+   * Cuando se guardo por ultima vez. Lo necesita la sincronizacion: sin
+   * esto, bajar de la nube pisaba lo local a ciegas y cada edicion se
+   * deshacia sola en el siguiente ciclo (que siempre empieza por bajar).
+   * Vacio = nunca se guardo, y pierde contra cualquier fecha real.
+   */
+  updatedAt: string;
 }
 
 export interface Budget {
