@@ -10,6 +10,7 @@ coverage
 .vite
 .claude/
 .codebase-memory/
+.agents/
 
 # TypeScript incremental build cache
 *.tsbuildinfo
