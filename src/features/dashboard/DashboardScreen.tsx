@@ -146,7 +146,7 @@ export function DashboardScreen() {
         <AnimatedNumber
           value={monthBalance.sobrante}
           format={(n) => formatMoney(n)}
-          className="figures"
+          className={`figures ${activeQuincenaIdx === 1 ? 'glow-q25' : 'glow-q10'}`}
           style={{
             display: 'block',
             fontSize: 'var(--text-3xl)',

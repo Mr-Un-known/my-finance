@@ -17,6 +17,11 @@ body {
 }
 
 /* Todas las cifras en tabular para que las columnas de pesos no bailen. */
+/* Resplandor mínimo en la cifra principal — el efecto que define el
+   estilo OLED. Solo en el número grande: aplicado a todo, cansa. */
+.glow-q10 { text-shadow: var(--glow-q10); }
+.glow-q25 { text-shadow: var(--glow-q25); }
+
 .figures {
   font-family: var(--font-figures);
   font-variant-numeric: tabular-nums;
