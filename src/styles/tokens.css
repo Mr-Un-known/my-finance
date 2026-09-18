@@ -1,98 +1,219 @@
 /* ---------------------------------------------------------------
-   My Finance — sistema visual
-   Identidad: la app se organiza por QUINCENAS, asi que cada quincena
-   tiene su propio color. Nunca dudas en cual estas parado.
-     Quincena del 10 -> indigo
-     Quincena del 25 -> ocre
-   El resto de la interfaz es deliberadamente silenciosa para que el
-   numero grande ("cuanto me queda") sea lo unico que grita.
+   My Finance — sistema visual v2 (iOS 18 native)
+   Identidad: la app se organiza por QUINCENAS, así que cada quincena
+   tiene su propio color, ahora alineado a los SystemColors de iOS.
+     Quincena del 10 -> SystemBlue (#007AFF)
+     Quincena del 25 -> SystemOrange (#FF9500)
+   Tipografía: SF Pro Text (UI) + SF Pro Rounded (números), nativa en
+   iOS/macOS, sin @font-face. Fallback a system-ui en desktop no-Apple.
+   Motion: springs iOS (--ease-spring-out).
+   Retro-compat: los nombres `--step-N`, `--q10`, `--surface`, etc.
+   siguen existiendo — call sites de Fases 1-12 no se rompen.
 ----------------------------------------------------------------- */
 
 :root {
-  --paper: #f6f7f9;
-  --surface: #ffffff;
-  --surface-sunken: #eceef2;
-  --line: #e2e5ea;
-  --line-strong: #cdd2da;
+  /* ────────────── Grises iOS System (light) ────────────── */
+  --gray-50:  #F2F2F7;
+  --gray-100: #E5E5EA;
+  --gray-200: #D1D1D6;
+  --gray-300: #C7C7CC;
+  --gray-400: #AEAEB2;
+  --gray-500: #8E8E93;
+  --gray-600: #636366;
+  --gray-700: #48484A;
+  --gray-800: #3A3A3C;
+  --gray-900: #2C2C2E;
+  --gray-950: #1C1C1E;
 
-  --text: #12141a;
-  --text-muted: #6c727f;
-  --text-faint: #9aa0ab;
+  /* ────────────── Backgrounds / superficies ────────────── */
+  --paper: #F2F2F7;              /* iOS grouped background */
+  --surface: #FFFFFF;            /* card / row surface */
+  --surface-sunken: #E5E5EA;     /* input / sunken sections */
 
-  --q10: #3b5bdb;
-  --q10-soft: #e8ecfb;
-  --q25: #b0721a;
-  --q25-soft: #f8efdf;
+  /* ────────────── Texto ────────────── */
+  --text: #000000;               /* iOS label */
+  --text-muted: #3C3C43;         /* iOS secondaryLabel base */
+  --text-faint: #8E8E93;         /* iOS tertiaryLabel */
 
-  --positive: #1e8e6a;
-  --positive-soft: #e3f3ed;
-  --committed: #8a5cf6;
-  --danger: #b3261e;
-  --danger-soft: #fae9e8;
+  /* ────────────── Líneas ────────────── */
+  --line: #E5E5EA;
+  --line-strong: #C7C7CC;
 
-  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-figures: 'Instrument Sans', system-ui, sans-serif;
+  /* ────────────── Acentos de quincena (iOS SystemColors) ────────────── */
+  --q10: #007AFF;                /* SystemBlue */
+  --q10-soft: #E5F0FF;
+  --q25: #FF9500;                /* SystemOrange */
+  --q25-soft: #FFF3E0;
 
-  --step--1: 0.8125rem;
-  --step-0: 0.9375rem;
-  --step-1: 1.0625rem;
-  --step-2: 1.375rem;
-  --step-3: 1.875rem;
-  --step-4: 2.75rem;
+  /* ────────────── Semánticos (iOS SystemColors) ────────────── */
+  --positive: #34C759;           /* SystemGreen */
+  --positive-soft: #E3F9E7;
+  --committed: #AF52DE;          /* SystemPurple */
+  --danger: #FF3B30;             /* SystemRed */
+  --danger-soft: #FFE5E3;
+  --warning: #FFCC00;            /* SystemYellow (nuevo) */
+  --warning-soft: #FFF9DB;       /* nuevo */
 
+  /* ────────────── Tipografía ────────────── */
+  --font-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-figures: 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+  /* Escala vieja (retro-compat) — valores ajustados a iOS */
+  --step--1: 0.8125rem;          /* 13px */
+  --step-0:  0.9375rem;          /* 15px — body */
+  --step-1:  1.0625rem;          /* 17px — headline iOS */
+  --step-2:  1.25rem;            /* 20px — title3 iOS */
+  --step-3:  2.125rem;           /* 34px — largeTitle iOS */
+  --step-4:  2.75rem;            /* 44px — display */
+
+  /* Escala nueva iOS text styles */
+  --text-xs:   0.75rem;          /* 12px */
+  --text-sm:   0.8125rem;        /* 13px */
+  --text-base: 0.9375rem;        /* 15px */
+  --text-md:   1.0625rem;        /* 17px */
+  --text-lg:   1.25rem;          /* 20px */
+  --text-xl:   1.5rem;           /* 24px */
+  --text-2xl:  2.125rem;         /* 34px */
+  --text-3xl:  2.75rem;          /* 44px */
+
+  /* Line-heights */
+  --lh-tight: 1.15;
+  --lh-normal: 1.4;
+  --lh-loose: 1.55;
+
+  /* ────────────── Spacing (sin cambios, se mantiene) ────────────── */
   --gap-xs: 0.25rem;
-  --gap-s: 0.5rem;
-  --gap-m: 0.875rem;
-  --gap-l: 1.25rem;
+  --gap-s:  0.5rem;
+  --gap-m:  0.875rem;
+  --gap-l:  1.25rem;
   --gap-xl: 2rem;
-  --radius-s: 10px;
-  --radius-m: 16px;
-  --radius-l: 22px;
 
+  /* ────────────── Radios (levemente más grandes, iOS 18) ────────────── */
+  --radius-s:  12px;             /* era 10 */
+  --radius-m:  18px;             /* era 16 */
+  --radius-l:  24px;             /* era 22 */
+  --radius-xl: 32px;             /* nuevo */
+
+  /* ────────────── Materiales (nuevos) ────────────── */
+  --material-thin: color-mix(in srgb, #FFFFFF 72%, transparent);
+  --material-regular: color-mix(in srgb, #FFFFFF 90%, transparent);
+
+  /* ────────────── Motion (nuevos) ────────────── */
+  --ease-spring-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 120ms;
+  --dur-med:  240ms;
+  --dur-slow: 360ms;
+
+  /* ────────────── Elevación (nuevas) ────────────── */
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.04), 0 1px 4px rgb(0 0 0 / 0.03);
+  --shadow-2: 0 2px 8px rgb(0 0 0 / 0.06), 0 4px 16px rgb(0 0 0 / 0.04);
+  --shadow-3: 0 6px 20px rgb(0 0 0 / 0.10);
+
+  /* ────────────── Misc ────────────── */
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-
   --tap: 44px;
 }
 
+/* ────────────── Dark mode (auto por preferencia del sistema) ────────────── */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --paper: #0e1014;
-    --surface: #171a21;
-    --surface-sunken: #101318;
-    --line: #262b34;
-    --line-strong: #39404c;
-    --text: #e8eaee;
-    --text-muted: #949bab;
-    --text-faint: #6b7280;
-    --q10: #8da2f5;
-    --q10-soft: #1b2340;
-    --q25: #e0ac5e;
-    --q25-soft: #35270f;
-    --positive: #4ec49b;
-    --positive-soft: #10281f;
-    --committed: #b093fa;
-    --danger: #ef7b72;
-    --danger-soft: #2e1412;
+    /* Grises iOS Dark */
+    --gray-50:  #1C1C1E;
+    --gray-100: #2C2C2E;
+    --gray-200: #3A3A3C;
+    --gray-300: #48484A;
+    --gray-400: #636366;
+    --gray-500: #8E8E93;
+    --gray-600: #AEAEB2;
+    --gray-700: #C7C7CC;
+    --gray-800: #D1D1D6;
+    --gray-900: #E5E5EA;
+    --gray-950: #F2F2F7;
+
+    /* Backgrounds */
+    --paper: #000000;              /* iOS Dark grouped background */
+    --surface: #1C1C1E;
+    --surface-sunken: #2C2C2E;
+
+    /* Texto */
+    --text: #FFFFFF;
+    --text-muted: #EBEBF5;
+    --text-faint: #8E8E93;
+
+    /* Líneas */
+    --line: #38383A;
+    --line-strong: #48484A;
+
+    /* Acentos (versiones más brillantes de iOS Dark) */
+    --q10: #0A84FF;
+    --q10-soft: #1B2B47;
+    --q25: #FF9F0A;
+    --q25-soft: #3E2A0F;
+
+    /* Semánticos */
+    --positive: #30D158;
+    --positive-soft: #0D2F17;
+    --committed: #BF5AF2;
+    --danger: #FF453A;
+    --danger-soft: #3A0F0C;
+    --warning: #FFD60A;
+    --warning-soft: #3A2E00;
+
+    /* Materiales en dark */
+    --material-thin: color-mix(in srgb, #1C1C1E 72%, transparent);
+    --material-regular: color-mix(in srgb, #1C1C1E 90%, transparent);
+
+    /* Elevación en dark: sombras más profundas */
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 0.30);
+    --shadow-2: 0 2px 8px rgb(0 0 0 / 0.40);
+    --shadow-3: 0 6px 20px rgb(0 0 0 / 0.50);
   }
 }
 
+/* ────────────── Dark mode (forzado por [data-theme='dark']) ────────────── */
 :root[data-theme='dark'] {
-  --paper: #0e1014;
-  --surface: #171a21;
-  --surface-sunken: #101318;
-  --line: #262b34;
-  --line-strong: #39404c;
-  --text: #e8eaee;
-  --text-muted: #949bab;
-  --text-faint: #6b7280;
-  --q10: #8da2f5;
-  --q10-soft: #1b2340;
-  --q25: #e0ac5e;
-  --q25-soft: #35270f;
-  --positive: #4ec49b;
-  --positive-soft: #10281f;
-  --committed: #b093fa;
-  --danger: #ef7b72;
-  --danger-soft: #2e1412;
+  --gray-50:  #1C1C1E;
+  --gray-100: #2C2C2E;
+  --gray-200: #3A3A3C;
+  --gray-300: #48484A;
+  --gray-400: #636366;
+  --gray-500: #8E8E93;
+  --gray-600: #AEAEB2;
+  --gray-700: #C7C7CC;
+  --gray-800: #D1D1D6;
+  --gray-900: #E5E5EA;
+  --gray-950: #F2F2F7;
+
+  --paper: #000000;
+  --surface: #1C1C1E;
+  --surface-sunken: #2C2C2E;
+
+  --text: #FFFFFF;
+  --text-muted: #EBEBF5;
+  --text-faint: #8E8E93;
+
+  --line: #38383A;
+  --line-strong: #48484A;
+
+  --q10: #0A84FF;
+  --q10-soft: #1B2B47;
+  --q25: #FF9F0A;
+  --q25-soft: #3E2A0F;
+
+  --positive: #30D158;
+  --positive-soft: #0D2F17;
+  --committed: #BF5AF2;
+  --danger: #FF453A;
+  --danger-soft: #3A0F0C;
+  --warning: #FFD60A;
+  --warning-soft: #3A2E00;
+
+  --material-thin: color-mix(in srgb, #1C1C1E 72%, transparent);
+  --material-regular: color-mix(in srgb, #1C1C1E 90%, transparent);
+
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.30);
+  --shadow-2: 0 2px 8px rgb(0 0 0 / 0.40);
+  --shadow-3: 0 6px 20px rgb(0 0 0 / 0.50);
 }
