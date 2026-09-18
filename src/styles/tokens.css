@@ -1,75 +1,286 @@
 /* ---------------------------------------------------------------
-   My Finance — sistema visual v3 "OLED"
-
-   Este archivo aplica al pie de la letra lo que recomendó la skill
-   ui-ux-pro-max para "personal finance / fintech / dashboard":
-
-     Estilo      Dark Mode (OLED)
-     Colores     Primary #0891B2 · Secondary #22D3EE · CTA #059669
-     Tipografía  IBM Plex Sans (financial, trustworthy, banking)
-     Efectos     resplandor mínimo (text-shadow 0 0 10px), alto contraste,
-                 baja emisión de blanco, foco visible
-     Evitar      fondos claros
-
-   Por eso es OSCURO SIEMPRE: la propia especificación dice "No white
-   (#FFFFFF) background", así que no hay modo claro. Ese es el precio de
-   seguirla; si el modo claro hace falta, esta es la primera decisión a
-   revisar.
-
-   Dos cosas donde la especificación no alcanzaba y hubo que decidir:
-   1. Pide un solo color primario, pero la app necesita DOS que se
-      distingan, uno por quincena. Se toma el cian de la paleta para la
-      del 10 y un dorado —que la especificación lista como acento neón
-      válido— para la del 25.
-   2. El verde CTA #059669 sobre negro da poco contraste como texto, así
-      que para texto se usa una versión más clara del mismo tono.
-
-   Para volver al diseño anterior:  git reset --hard diseno-v1
-   El archivo original quedó en tokens-v1-ios.css.
+   My Finance — sistema visual v2 (iOS 18 native)
+   Identidad: la app se organiza por QUINCENAS, así que cada quincena
+   tiene su propio color, ahora alineado a los SystemColors de iOS.
+     Quincena del 10 -> SystemBlue (#007AFF)
+     Quincena del 25 -> SystemOrange (#FF9500)
+   Tipografía: SF Pro Text (UI) + SF Pro Rounded (números), nativa en
+   iOS/macOS, sin @font-face. Fallback a system-ui en desktop no-Apple.
+   Motion: springs iOS (--ease-spring-out).
+   Retro-compat: los nombres `--step-N`, `--q10`, `--surface`, etc.
+   siguen existiendo — call sites de Fases 1-12 no se rompen.
 ----------------------------------------------------------------- */
 
 :root {
-  color-scheme: dark;
+  /* ────────────── Grises iOS System (light) ────────────── */
+  --gray-50:  #F2F2F7;
+  --gray-100: #E5E5EA;
+  --gray-200: #D1D1D6;
+  --gray-300: #C7C7CC;
+  --gray-400: #AEAEB2;
+  --gray-500: #8E8E93;
+  --gray-600: #636366;
+  --gray-700: #48484A;
+  --gray-800: #3A3A3C;
+  --gray-900: #2C2C2E;
+  --gray-950: #1C1C1E;
 
-  /* ────────────── Superficies: negro OLED ────────────── */
-  --paper: #000000;              /* Deep Black — ahorra batería en OLED */
-  --surface: #121212;            /* Dark Grey */
-  --surface-sunken: #0A0E27;     /* Midnight Blue */
+  /* ────────────── Backgrounds / superficies ────────────── */
+  --paper: #F2F2F7;              /* iOS grouped background */
+  --surface: #FFFFFF;            /* card / row surface */
+  --surface-sunken: #E5E5EA;     /* input / sunken sections */
 
-  /* ────────────── Texto: alto contraste ────────────── */
-  --text: #FFFFFF;               /* 21:1 sobre negro */
-  --text-muted: #E0E0E0;         /* 17:1 */
-  --text-faint: #9BA8B4;         /* 8.4:1 — la especificación pide 7:1+ */
+  /* ────────────── Texto ────────────── */
+  --text: #000000;               /* iOS label */
+  --text-muted: #3C3C43;         /* iOS secondaryLabel base */
+  --text-faint: #6E6E73;         /* 5.07:1. El #8E8E93 de iOS daba 3.26:1 */
 
   /* ────────────── Líneas ────────────── */
-  --line: #1F2933;
-  --line-strong: #33414F;
+  --line: #E5E5EA;
+  --line-strong: #C7C7CC;
 
-  /* ────────────── Quincenas: los dos acentos neón ────────────── */
-  --q10: #22D3EE;                /* Secondary de la paleta */
-  --q10-soft: #082F3A;
-  --q25: #FFB020;                /* dorado, acento neón permitido */
-  --q25-soft: #2E2206;
+  /* ────────────── Acentos de quincena (iOS SystemColors) ────────────── */
+  --q10: #007AFF;                /* SystemBlue */
+  --q10-soft: #E5F0FF;
+  --q25: #FF9500;                /* SystemOrange */
+  --q25-soft: #FFF3E0;
 
-  /* ────────────── Semánticos ────────────── */
-  --positive: #059669;           /* CTA de la paleta */
-  --positive-soft: #052E22;
-  --committed: #A78BFA;          /* púrpura neón */
-  --danger: #FF4D6D;
-  --danger-soft: #330E17;
-  --warning: #FFB020;
-  --warning-soft: #2E2206;
+  /* ────────────── Semánticos (iOS SystemColors) ────────────── */
+  --positive: #34C759;           /* SystemGreen */
+  --positive-soft: #E3F9E7;
+  --committed: #AF52DE;          /* SystemPurple */
+  --danger: #FF3B30;             /* SystemRed */
+  --danger-soft: #FFE5E3;
+  --warning: #FFCC00;            /* SystemYellow (nuevo) */
+  --warning-soft: #FFF9DB;       /* nuevo */
 
-  /* En oscuro el texto necesita MÁS luz, no menos. */
-  --positive-text: #34D399;      /* 9.0:1 sobre #121212 */
-  --danger-text:   #FF8095;      /* 8.2:1 */
-  --q10-text:      #22D3EE;      /* 11.4:1 */
-  --q25-text:      #FFB020;      /* 10.6:1 */
 
-  /* ────────────── Categorías ──────────────
-     Se conserva el sistema generado en OKLCH (doce tonos equiespaciados,
-     sin chocar entre sí ni con los acentos), en su variante clara, que es
-     la que contrasta contra un fondo oscuro. */
+  /* ────────────── Colores para TEXTO ──────────────
+     Los SystemColors de iOS estan pensados para tinta sobre fondo, no para
+     texto: sobre blanco, --positive da 2.22:1, --q25 2.20:1, --danger
+     3.55:1 y --q10 4.02:1. Todos por debajo del 4.5:1 que pide WCAG 1.4.3
+     para texto normal, y los dos primeros ni siquiera llegan al 3:1 de
+     texto grande. Se veia en los montos de ingreso, en TODOS los mensajes
+     de error, en la fecha de pago de tarjeta y en la pestaña activa.
+     En modo oscuro los mismos hex SI pasan, asi que estos -text solo
+     existen en modo claro y alla se reasignan al color de identidad.
+     Regla: fondos, chips, bordes e iconos usan el color de identidad;
+     cualquier cosa que se LEA usa su -text. */
+  --positive-text: #1A7F46;      /* 5.04:1 sobre blanco */
+  --danger-text:   #D70015;      /* 5.38:1 */
+  --q10-text:      #0068D6;      /* 5.31:1 */
+  --q25-text:      #B25F00;      /* 4.64:1 */
+
+  /* ────────────── Colores de categoria ──────────────
+     Generados, no elegidos a mano. Doce tonos repartidos en el circulo
+     OKLCH con la MISMA luminosidad y croma, asi que ninguno pesa mas que
+     otro en un grafico. Restricciones que cumplen, verificadas:
+       - >=19 grados entre tonos vecinos (antes habia tres azules casi
+         iguales y dos morados que no se distinguian en la leyenda)
+       - >=17 grados de los tonos RESERVADOS: azul de quincena, naranja de
+         quincena, verde "positivo" y rojo "peligro". Antes Salud era rojo
+         y Ahorro verde, o sea que una categoria se leia como un estado.
+       - >=3:1 contra su fondo (WCAG 1.4.11, contraste no textual)
+     Las ETIQUETAS van en --text, nunca en el color de la categoria: el
+     color identifica, el texto se lee.
+     Regenerar con el script de docs/DESIGN_SYSTEM.md. */
+  --cat-hogar: #C24976;
+  --cat-alimentacion: #C25600;
+  --cat-transporte: #907A00;
+  --cat-entretenimiento: #6D8700;
+  --cat-viajes: #00976D;
+  --cat-salud: #009691;
+  --cat-suscripciones: #0090AF;
+  --cat-compras: #0088C6;
+  --cat-educacion: #6C6AD5;
+  --cat-servicios: #8B5FC9;
+  --cat-deudas: #A355B4;
+  --cat-ahorro: #B54D98;
+
+  /* ────────────── Tipografía ────────────── */
+  --font-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-figures: 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+  /* Escala vieja (retro-compat) — valores ajustados a iOS */
+  --step--1: 0.8125rem;          /* 13px */
+  --step-0:  0.9375rem;          /* 15px — body */
+  --step-1:  1.0625rem;          /* 17px — headline iOS */
+  --step-2:  1.25rem;            /* 20px — title3 iOS */
+  --step-3:  2.125rem;           /* 34px — largeTitle iOS */
+  --step-4:  2.75rem;            /* 44px — display */
+
+  /* Escala nueva iOS text styles */
+  --text-xs:   0.75rem;          /* 12px */
+  --text-sm:   0.8125rem;        /* 13px */
+  --text-base: 0.9375rem;        /* 15px */
+  --text-md:   1.0625rem;        /* 17px */
+  --text-lg:   1.25rem;          /* 20px */
+  --text-xl:   1.5rem;           /* 24px */
+  --text-2xl:  2.125rem;         /* 34px */
+  --text-3xl:  2.75rem;          /* 44px */
+
+  /* Line-heights */
+  --lh-tight: 1.15;
+  --lh-normal: 1.4;
+  --lh-loose: 1.55;
+
+  /* ────────────── Spacing (sin cambios, se mantiene) ────────────── */
+  --gap-xs: 0.25rem;
+  --gap-s:  0.5rem;
+  --gap-m:  0.875rem;
+  --gap-l:  1.25rem;
+  --gap-xl: 2rem;
+
+  /* ────────────── Radios (levemente más grandes, iOS 18) ────────────── */
+  --radius-s:  12px;             /* era 10 */
+  --radius-m:  18px;             /* era 16 */
+  --radius-l:  24px;             /* era 22 */
+  --radius-xl: 32px;             /* nuevo */
+
+  /* ────────────── Materiales (nuevos) ────────────── */
+  --material-thin: color-mix(in srgb, #FFFFFF 72%, transparent);
+  --material-regular: color-mix(in srgb, #FFFFFF 90%, transparent);
+
+  /* ────────────── Motion (nuevos) ────────────── */
+  --ease-spring-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 120ms;
+  --dur-med:  240ms;
+  --dur-slow: 360ms;
+
+  /* ────────────── Elevación (nuevas) ────────────── */
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.04), 0 1px 4px rgb(0 0 0 / 0.03);
+  --shadow-2: 0 2px 8px rgb(0 0 0 / 0.06), 0 4px 16px rgb(0 0 0 / 0.04);
+  --shadow-3: 0 6px 20px rgb(0 0 0 / 0.10);
+
+  /* ────────────── Misc ────────────── */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --tap: 44px;
+}
+
+/* ────────────── Dark mode (auto por preferencia del sistema) ────────────── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    /* Grises iOS Dark */
+    --gray-50:  #1C1C1E;
+    --gray-100: #2C2C2E;
+    --gray-200: #3A3A3C;
+    --gray-300: #48484A;
+    --gray-400: #636366;
+    --gray-500: #8E8E93;
+    --gray-600: #AEAEB2;
+    --gray-700: #C7C7CC;
+    --gray-800: #D1D1D6;
+    --gray-900: #E5E5EA;
+    --gray-950: #F2F2F7;
+
+    /* Backgrounds */
+    --paper: #000000;              /* iOS Dark grouped background */
+    --surface: #1C1C1E;
+    --surface-sunken: #2C2C2E;
+
+    /* Texto */
+    --text: #FFFFFF;
+    --text-muted: #EBEBF5;
+    --text-faint: #8E8E93;
+
+    /* Líneas */
+    --line: #38383A;
+    --line-strong: #48484A;
+
+    /* Acentos (versiones más brillantes de iOS Dark) */
+    --q10: #0A84FF;
+    --q10-soft: #1B2B47;
+    --q25: #FF9F0A;
+    --q25-soft: #3E2A0F;
+
+    /* Semánticos */
+    --positive: #30D158;
+    --positive-soft: #0D2F17;
+    --committed: #BF5AF2;
+    --danger: #FF453A;
+    --danger-soft: #3A0F0C;
+    --warning: #FFD60A;
+    --warning-soft: #3A2E00;
+
+
+    /* En oscuro los colores de identidad ya pasan contraste sobre #1C1C1E,
+       asi que los -text son el mismo color y no hay dos sistemas. */
+    --positive-text: var(--positive);
+    --danger-text:   var(--danger);
+    --q10-text:      var(--q10);
+    --q25-text:      var(--q25);
+
+    /* Categorias en oscuro: mismo tono, mas claras, para mantener
+       contraste contra --surface #1C1C1E. */
+    --cat-hogar: #F889AD;
+    --cat-alimentacion: #F7945A;
+    --cat-transporte: #C5B337;
+    --cat-entretenimiento: #A4BE50;
+    --cat-viajes: #2CCDA5;
+    --cat-salud: #00CCC6;
+    --cat-suscripciones: #00C8E3;
+    --cat-compras: #30C0F8;
+    --cat-educacion: #A2A5FF;
+    --cat-servicios: #C09BFC;
+    --cat-deudas: #D892E8;
+    --cat-ahorro: #EB8CCD;
+
+    /* Materiales en dark */
+    --material-thin: color-mix(in srgb, #1C1C1E 72%, transparent);
+    --material-regular: color-mix(in srgb, #1C1C1E 90%, transparent);
+
+    /* Elevación en dark: sombras más profundas */
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 0.30);
+    --shadow-2: 0 2px 8px rgb(0 0 0 / 0.40);
+    --shadow-3: 0 6px 20px rgb(0 0 0 / 0.50);
+  }
+}
+
+/* ────────────── Dark mode (forzado por [data-theme='dark']) ────────────── */
+:root[data-theme='dark'] {
+  --gray-50:  #1C1C1E;
+  --gray-100: #2C2C2E;
+  --gray-200: #3A3A3C;
+  --gray-300: #48484A;
+  --gray-400: #636366;
+  --gray-500: #8E8E93;
+  --gray-600: #AEAEB2;
+  --gray-700: #C7C7CC;
+  --gray-800: #D1D1D6;
+  --gray-900: #E5E5EA;
+  --gray-950: #F2F2F7;
+
+  --paper: #000000;
+  --surface: #1C1C1E;
+  --surface-sunken: #2C2C2E;
+
+  --text: #FFFFFF;
+  --text-muted: #EBEBF5;
+  --text-faint: #8E8E93;
+
+  --line: #38383A;
+  --line-strong: #48484A;
+
+  --q10: #0A84FF;
+  --q10-soft: #1B2B47;
+  --q25: #FF9F0A;
+  --q25-soft: #3E2A0F;
+
+  --positive: #30D158;
+  --positive-soft: #0D2F17;
+  --committed: #BF5AF2;
+  --danger: #FF453A;
+  --danger-soft: #3A0F0C;
+  --warning: #FFD60A;
+  --warning-soft: #3A2E00;
+
+  --positive-text: var(--positive);
+  --danger-text:   var(--danger);
+  --q10-text:      var(--q10);
+  --q25-text:      var(--q25);
+
   --cat-hogar: #F889AD;
   --cat-alimentacion: #F7945A;
   --cat-transporte: #C5B337;
@@ -83,62 +294,10 @@
   --cat-deudas: #D892E8;
   --cat-ahorro: #EB8CCD;
 
-  /* ────────────── Tipografía: IBM Plex Sans ────────────── */
-  --font-ui: 'IBM Plex Sans', -apple-system, system-ui, sans-serif;
-  --font-figures: 'IBM Plex Sans', -apple-system, system-ui, sans-serif;
+  --material-thin: color-mix(in srgb, #1C1C1E 72%, transparent);
+  --material-regular: color-mix(in srgb, #1C1C1E 90%, transparent);
 
-  /* Escala vieja (retro-compat) */
-  --step--1: 0.8125rem;
-  --step-0:  0.9375rem;
-  --step-1:  1.0625rem;
-  --step-2:  1.25rem;
-  --step-3:  2.125rem;
-  --step-4:  2.75rem;
-
-  --text-xs:   0.75rem;
-  --text-sm:   0.8125rem;
-  --text-base: 0.9375rem;
-  --text-md:   1.0625rem;
-  --text-lg:   1.25rem;
-  --text-xl:   1.5rem;
-  --text-2xl:  2.125rem;
-  --text-3xl:  2.75rem;
-
-  --lh-tight: 1.15;
-  --lh-normal: 1.4;
-  --lh-loose: 1.55;
-
-  --gap-xs: 0.25rem;
-  --gap-s:  0.5rem;
-  --gap-m:  0.875rem;
-  --gap-l:  1.25rem;
-  --gap-xl: 2rem;
-
-  --radius-s:  12px;
-  --radius-m:  18px;
-  --radius-l:  24px;
-  --radius-xl: 32px;
-
-  --material-thin: color-mix(in srgb, #121212 88%, transparent);
-  --material-regular: color-mix(in srgb, #121212 96%, transparent);
-
-  --ease-spring-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-spring-in-out: cubic-bezier(0.65, 0, 0.35, 1);
-  --dur-fast: 120ms;
-  --dur-med:  240ms;
-  --dur-slow: 360ms;
-
-  /* En negro una sombra no se ve: la elevación se hace con un borde
-     tenue, que es como se separa una superficie de otra en OLED. */
-  --shadow-1: 0 0 0 1px rgb(255 255 255 / 0.04);
-  --shadow-2: 0 0 0 1px rgb(255 255 255 / 0.06), 0 8px 24px rgb(0 0 0 / 0.6);
-  --shadow-3: 0 0 0 1px rgb(255 255 255 / 0.08), 0 12px 32px rgb(0 0 0 / 0.8);
-
-  /* Resplandor mínimo, el efecto que pide el estilo. */
-  --glow-q10: 0 0 12px color-mix(in srgb, #22D3EE 45%, transparent);
-  --glow-q25: 0 0 12px color-mix(in srgb, #FFB020 45%, transparent);
-
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --tap: 44px;
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.30);
+  --shadow-2: 0 2px 8px rgb(0 0 0 / 0.40);
+  --shadow-3: 0 6px 20px rgb(0 0 0 / 0.50);
 }
