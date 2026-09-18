@@ -104,7 +104,7 @@ supabase functions deploy send-reminders
 
 ### 5. Programar el cron
 
-Abre `supabase/migrations/0003_reminder_cron.sql`, reemplaza:
+Abre `supabase/manual/0003_reminder_cron.sql`, reemplaza:
 - `TU-PROYECTO` por tu referencia real de proyecto.
 - `REEMPLAZAR_CON_TU_CRON_SECRET` por el mismo valor que usaste en
   `CRON_SECRET` arriba (idealmente, guardado en Vault — el archivo tiene

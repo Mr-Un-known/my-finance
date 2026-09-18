@@ -9,6 +9,10 @@ const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha invalida');
 
 export const SettingsSchema = z.object({
   id: z.literal('singleton'),
+  // Opcionales con default: un backup exportado antes de que existieran
+  // estos campos tiene que seguir importandose sin error.
+  displayName: z.string().default(''),
+  onboardedAt: z.string().nullable().default(null),
   currency: z.string().min(1),
   locale: z.string().min(1),
   quincenaStartDays: z.tuple([z.number().int().min(1).max(31), z.number().int().min(1).max(31)]),

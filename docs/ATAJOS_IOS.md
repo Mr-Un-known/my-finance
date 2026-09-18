@@ -6,12 +6,21 @@ sin abrir la app y navegar hasta el formulario.
 La app acepta que le abran el formulario **ya lleno** desde una URL. Los
 Atajos de iOS saben abrir URLs. Con eso alcanza — no hace falta nada más.
 
+> **Antes de empezar: ten cuenta creada.** iOS no sabe abrir una URL
+> dentro de una web app instalada, así que el Atajo siempre abre Safari.
+> Safari y la app instalada tienen almacenamientos separados, de modo que
+> sin cuenta el gasto que registras desde el Atajo no aparece en la app.
+> Con cuenta, los dos lados sincronizan solos. Ver [CUENTA.md](CUENTA.md).
+
+> **Ojo con la URL:** el usuario es `mr-un-known` (con la "n" final).
+> Sin ella el enlace da "Site not found".
+
 ---
 
 ## La URL
 
 ```
-https://<tu-usuario>.github.io/my-finance/movimientos?nuevo=1&tipo=ingreso&monto=3000000&concepto=Sueldo&pagado=1
+https://mr-un-known.github.io/my-finance/movimientos?nuevo=1&tipo=ingreso&monto=3000000&concepto=Sueldo&pagado=1
 ```
 
 | Parámetro   | Qué hace                                        | Valores                       |
@@ -45,7 +54,7 @@ inicio"), la URL abre **la app instalada**, no Safari.
    las variables mágicas de los pasos 2 y 3:
 
    ```
-   https://<tu-usuario>.github.io/my-finance/movimientos?nuevo=1&tipo=ingreso&pagado=1&monto=[Entrada número]&concepto=[Entrada texto]
+   https://mr-un-known.github.io/my-finance/movimientos?nuevo=1&tipo=ingreso&pagado=1&monto=[Entrada número]&concepto=[Entrada texto]
    ```
 
    (Toca el campo → **Seleccionar variable** → elige la salida de cada
@@ -107,7 +116,7 @@ Se abre la app con el monto ya puesto; tocás Guardar y listo.
 Para lo que gastás siempre igual (pasaje, almuerzo):
 
 ```
-https://<tu-usuario>.github.io/my-finance/movimientos?nuevo=1&monto=12000&concepto=Pasaje&pagado=1
+https://mr-un-known.github.io/my-finance/movimientos?nuevo=1&monto=12000&concepto=Pasaje&pagado=1
 ```
 
 Un solo paso **Abrir URLs**. Ponelo como widget y es un toque.

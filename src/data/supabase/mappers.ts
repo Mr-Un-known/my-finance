@@ -8,12 +8,15 @@ import type {
 } from '@/domain/types';
 
 export interface SettingsRow {
-  user_id: string; currency: string; locale: string; quincena_start_days: number[];
+  user_id: string; display_name: string | null; onboarded_at: string | null;
+  currency: string; locale: string; quincena_start_days: number[];
   default_payment_method_id: string | null; reminder_default_days_before: number; theme: string;
 }
 export function settingsFromRow(row: SettingsRow): Settings {
   return {
     id: 'singleton',
+    displayName: row.display_name ?? '',
+    onboardedAt: row.onboarded_at,
     currency: row.currency,
     locale: row.locale,
     quincenaStartDays: [row.quincena_start_days[0] ?? 10, row.quincena_start_days[1] ?? 25],
@@ -24,7 +27,8 @@ export function settingsFromRow(row: SettingsRow): Settings {
 }
 export function settingsToRow(userId: string, s: Settings): SettingsRow {
   return {
-    user_id: userId, currency: s.currency, locale: s.locale,
+    user_id: userId, display_name: s.displayName, onboarded_at: s.onboardedAt,
+    currency: s.currency, locale: s.locale,
     quincena_start_days: [...s.quincenaStartDays],
     default_payment_method_id: s.defaultPaymentMethodId,
     reminder_default_days_before: s.reminderDefaultDaysBefore,

@@ -21,6 +21,8 @@ export type QuincenaKey = string;
 
 export interface Settings {
   id: 'singleton';
+  /** Como quiere que lo llamemos. Vacio = no preguntado todavia. */
+  displayName: string;
   currency: string; // 'COP'
   locale: string; // 'es-CO'
   /** Dia en que arranca cada quincena. Por defecto [10, 25]. */
@@ -28,6 +30,8 @@ export interface Settings {
   defaultPaymentMethodId: Id | null;
   reminderDefaultDaysBefore: number;
   theme: 'system' | 'light' | 'dark';
+  /** ISO datetime de cuando termino la configuracion inicial. null = mostrarla. */
+  onboardedAt: string | null;
 }
 
 export interface Category {

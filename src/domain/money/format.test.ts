@@ -37,3 +37,26 @@ describe('formatCompact', () => {
     expect(formatCompact(85_000)).toBe('$ 85 k');
   });
 });
+
+describe('setMoneyLocale', () => {
+  it('cambia la moneda de todos los formatos sin tocar los call sites', async () => {
+    const { setMoneyLocale, currencySymbol } = await import('./format');
+    try {
+      setMoneyLocale('en-US', 'USD');
+      expect(formatMoney(2500)).toBe('$2,500');
+      expect(currencySymbol()).toBe('$');
+
+      setMoneyLocale('es-ES', 'EUR');
+      expect(formatMoney(2500)).toContain('€');
+      expect(currencySymbol()).toBe('€');
+      expect(formatCompact(2_500_000)).toBe('€ 2,5 M');
+    } finally {
+      // Otros tests asumen COP: dejar el modulo como estaba.
+      setMoneyLocale('es-CO', 'COP');
+    }
+  });
+
+  it('vuelve a colombiano al restaurar', () => {
+    expect(formatMoney(2_500_000)).toBe('$ 2.500.000');
+  });
+});

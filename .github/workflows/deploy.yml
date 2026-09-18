@@ -24,7 +24,15 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      # Las claves salen de Settings → Secrets → Actions del repo.
+      # La anon key de Supabase es publica por diseño: lo que protege los
+      # datos es RLS (ver supabase/migrations/0001_init.sql), no ocultarla.
+      # Sin estos secrets la app compila igual, pero sin cuenta ni sync.
       - run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_VAPID_PUBLIC_KEY: ${{ secrets.VITE_VAPID_PUBLIC_KEY }}
       # GitHub Pages no tiene rewrites: 404.html sirve de fallback SPA.
       - run: cp dist/index.html dist/404.html
       - uses: actions/configure-pages@v5

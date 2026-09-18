@@ -198,7 +198,7 @@ export function AnalyticsScreen() {
           </div>
         </div>
         <p style={{ margin: '10px 4px 0', fontSize: 'var(--text-xs)', color: 'var(--text-faint)' }}>
-          Tocá una categoría para ver el detalle.
+          Toca una categoría para ver el detalle.
         </p>
       </ChartCard>
 

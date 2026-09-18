@@ -7,6 +7,7 @@ import { MonthNav, monthName } from '@/components/ui/MonthNav';
 import { db } from '@/data/db';
 import { localRepository, DEFAULT_SETTINGS } from '@/data/local/localRepository';
 import { seedDemoTransactions } from '@/data/local/demoData';
+import { ensureMonthMaterialized } from '@/data/local/materialize';
 import { maybeScheduleReminder } from '@/features/notifications/scheduleReminder';
 import { formatMoney } from '@/domain/money/format';
 import { quincenaKey } from '@/domain/quincena/quincena';
@@ -31,6 +32,10 @@ export function TransactionsScreen() {
   const [todayYear, todayMonth] = today.split('-').map(Number) as [number, number];
   const [cursor, setCursor] = useState({ y: todayYear, m: todayMonth });
   const isCurrentMonth = cursor.y === todayYear && cursor.m === todayMonth;
+
+  // Ver DashboardScreen: el mes que se mira tiene que tener sus
+  // instancias recurrentes creadas, aunque sea de dentro de dos años.
+  useEffect(() => { void ensureMonthMaterialized(cursor.y, cursor.m); }, [cursor]);
 
   const settings = useLiveQuery(() => localRepository.getSettings(), []) ?? DEFAULT_SETTINGS;
   const categories = useLiveQuery(() => localRepository.listCategories(), []) ?? [];

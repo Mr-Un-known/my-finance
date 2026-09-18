@@ -3,6 +3,7 @@ import type {
   Budget, Category, PaymentMethod, RecurringRule, Reminder, Settings, Transaction,
 } from '@/domain/types';
 import type { ConceptIndexEntry } from '@/domain/inference/conceptInference';
+import type { Tombstone } from './sync/tombstones';
 
 /**
  * Nombre con prefijo propio: en GitHub Pages todos los proyectos de
@@ -20,6 +21,7 @@ export class MyFinanceDB extends Dexie {
   budgets!: EntityTable<Budget, 'id'>;
   reminders!: EntityTable<Reminder, 'id'>;
   conceptIndex!: EntityTable<ConceptIndexEntry, 'id'>;
+  deletions!: EntityTable<Tombstone, 'id'>;
 
   constructor() {
     super(DB_NAME);
@@ -39,6 +41,11 @@ export class MyFinanceDB extends Dexie {
     // Cada save de tx upsertea aquí, y el form al abrir consulta.
     this.version(2).stores({
       conceptIndex: 'id, lastUsedAt, count',
+    });
+    // v3: lapidas de borrado. Sin ellas, sincronizar resucita lo borrado
+    // (ver data/sync/tombstones.ts).
+    this.version(3).stores({
+      deletions: 'id, entity, deletedAt',
     });
   }
 }

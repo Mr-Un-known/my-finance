@@ -6,6 +6,7 @@ import { localRepository } from '@/data/local/localRepository';
 import { exportBackupJSON, exportTransactionsCSV, parseBackupFile, importBackup, type BackupPreview } from '@/data/backup/exportImport';
 import type { Backup } from '@/data/backup/schema';
 import type { Settings } from '@/domain/types';
+import { CURRENCIES } from '@/domain/money/currencies';
 import { ImportPreviewSheet } from './ImportPreviewSheet';
 import { CloudSection } from './CloudSection';
 import { NotificationsSection } from '@/features/notifications/NotificationsSection';
@@ -67,7 +68,23 @@ export function SettingsScreen() {
   }
 
   return (
-    <Screen title="Ajustes" subtitle="Moneda, quincenas y tarjeta">
+    <Screen title="Ajustes" subtitle="Tu cuenta, moneda y quincenas">
+      <section style={sectionStyle}>
+        <h2 style={sectionTitle}>Tu nombre</h2>
+        <input
+          defaultValue={settings.displayName}
+          onBlur={(e) => patch({ displayName: e.target.value.trim() })}
+          placeholder="Como quieres que te llamemos"
+          aria-label="Tu nombre"
+          maxLength={40}
+          style={{
+            width: '100%', minHeight: 'var(--tap)', padding: '0 14px',
+            borderRadius: 'var(--radius-s)', border: '1px solid var(--line-strong)',
+            background: 'var(--surface)', color: 'var(--text)', fontSize: 16,
+          }}
+        />
+      </section>
+
       <section style={sectionStyle}>
         <h2 style={sectionTitle}>Tema</h2>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -80,23 +97,32 @@ export function SettingsScreen() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={sectionTitle}>Moneda y región</h2>
-        <Row label="Moneda">
-          <input
-            defaultValue={settings.currency}
-            onBlur={(e) => patch({ currency: e.target.value.trim().toUpperCase() || 'COP' })}
-            maxLength={3}
-            className="figures"
-            style={smallInputStyle}
-          />
-        </Row>
-        <Row label="Formato">
-          <input
-            defaultValue={settings.locale}
-            onBlur={(e) => patch({ locale: e.target.value.trim() || 'es-CO' })}
-            style={smallInputStyle}
-          />
-        </Row>
+        <h2 style={sectionTitle}>Moneda</h2>
+        {/* Selector, no dos campos de texto: escribir 'cop' y 'es_CO' a mano
+            rompía el formato de toda la app sin decir por qué. */}
+        <div style={{ display: 'grid', gap: 6 }}>
+          {CURRENCIES.map((c) => {
+            const activa = settings.currency === c.code;
+            return (
+              <button
+                key={c.code}
+                type="button"
+                onClick={() => patch({ currency: c.code, locale: c.locale })}
+                aria-pressed={activa}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                  minHeight: 'var(--tap)', padding: '0 14px', borderRadius: 'var(--radius-s)',
+                  border: `1px solid ${activa ? 'var(--q10)' : 'var(--line)'}`,
+                  background: activa ? 'var(--q10-soft)' : 'var(--surface)',
+                  color: 'var(--text)', cursor: 'pointer', fontSize: 'var(--text-base)',
+                }}
+              >
+                <span style={{ flex: 1, textAlign: 'left', fontWeight: activa ? 600 : 400 }}>{c.label}</span>
+                <span className="figures" style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>{c.sample}</span>
+              </button>
+            );
+          })}
+        </div>
       </section>
 
       <section style={sectionStyle}>

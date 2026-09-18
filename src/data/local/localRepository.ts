@@ -4,20 +4,41 @@ import type { Settings } from '@/domain/types';
 import { importBackup } from '../backup/exportImport';
 import { BackupSchema } from '../backup/schema';
 import { normalize } from '@/domain/inference/conceptInference';
+import { makeTombstone, type DeletableEntity } from '../sync/tombstones';
+
+/**
+ * Todo borrado deja lapida. Es lo que permite que el borrado viaje a los
+ * otros dispositivos en vez de que ellos lo resuciten en el siguiente
+ * sync (ver data/sync/tombstones.ts).
+ */
+async function borrarConLapida(entity: DeletableEntity, id: string): Promise<void> {
+  await db.deletions.put(makeTombstone(entity, id, new Date().toISOString()));
+}
 
 export const DEFAULT_SETTINGS: Settings = {
   id: 'singleton',
+  displayName: '',
   currency: 'COP',
   locale: 'es-CO',
   quincenaStartDays: [10, 25], // quincena del 10 y quincena del 25
   defaultPaymentMethodId: null,
   reminderDefaultDaysBefore: 1,
   theme: 'system',
+  onboardedAt: null,
 };
+
+/**
+ * Rellena con los defaults los campos que falten. Sin esto, cada campo
+ * nuevo de Settings deja `undefined` en la base de quien ya venia usando
+ * la app (displayName, onboardedAt...) y la UI se rompe en silencio.
+ */
+export function withDefaults(stored: Settings | undefined): Settings {
+  return { ...DEFAULT_SETTINGS, ...(stored ?? {}), id: 'singleton' };
+}
 
 export const localRepository: Repository = {
   async getSettings() {
-    return (await db.settings.get('singleton')) ?? DEFAULT_SETTINGS;
+    return withDefaults(await db.settings.get('singleton'));
   },
   async saveSettings(settings) {
     await db.settings.put(settings);
@@ -25,11 +46,11 @@ export const localRepository: Repository = {
 
   listCategories: () => db.categories.orderBy('sortOrder').toArray(),
   saveCategory: async (category) => { await db.categories.put(category); },
-  deleteCategory: async (id) => { await db.categories.delete(id); },
+  deleteCategory: async (id) => { await db.categories.delete(id); await borrarConLapida('categories', id); },
 
   listPaymentMethods: () => db.paymentMethods.toArray(),
   savePaymentMethod: async (method) => { await db.paymentMethods.put(method); },
-  deletePaymentMethod: async (id) => { await db.paymentMethods.delete(id); },
+  deletePaymentMethod: async (id) => { await db.paymentMethods.delete(id); await borrarConLapida('paymentMethods', id); },
 
   listTransactions: (range) =>
     range
@@ -56,11 +77,11 @@ export const localRepository: Repository = {
       }
     }
   },
-  deleteTransaction: async (id) => { await db.transactions.delete(id); },
+  deleteTransaction: async (id) => { await db.transactions.delete(id); await borrarConLapida('transactions', id); },
 
   listRecurringRules: () => db.recurringRules.toArray(),
   saveRecurringRule: async (rule) => { await db.recurringRules.put(rule); },
-  deleteRecurringRule: async (id) => { await db.recurringRules.delete(id); },
+  deleteRecurringRule: async (id) => { await db.recurringRules.delete(id); await borrarConLapida('recurringRules', id); },
 
   listBudgets: (year, month) =>
     db.budgets.where('[year+month]').equals([year, month]).toArray(),

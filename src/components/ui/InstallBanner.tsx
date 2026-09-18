@@ -8,6 +8,12 @@ const DISMISS_KEY = 'myfinance:install-banner-dismissed';
  * si la pagina esta abierta en una pestaña normal de Safari — hay que
  * estar instalado en la pantalla de inicio. Este banner explica como,
  * en vez de mostrar un boton de "activar notificaciones" que no haria nada.
+ *
+ * Y avisa lo que nadie espera: en iOS la app instalada tiene su PROPIO
+ * almacenamiento, separado del de Safari. Lo cargado en la pestaña no
+ * aparece en la app instalada. Lo unico que cruza es la cuenta: al entrar
+ * con el mismo correo, useCloudSync baja todo. Sin ese aviso la gente
+ * instala, ve la app vacia y cree que perdio sus datos.
  */
 export function InstallBanner() {
   const [visible, setVisible] = useState(false);
@@ -42,6 +48,7 @@ export function InstallBanner() {
       <span aria-hidden style={{ fontSize: 16 }}>📲</span>
       <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--text)', flex: 1, lineHeight: 1.35 }}>
         Instálala: <strong>Compartir</strong> → <strong>Agregar a inicio</strong>.
+        {' '}Al abrirla, entra con tu misma cuenta y tus datos aparecen ahí.
       </p>
       <button
         type="button" onClick={dismiss} aria-label="Cerrar"

@@ -23,6 +23,7 @@ async function currentUserId(): Promise<string> {
 }
 
 const DEFAULT_SETTINGS_BASE: Omit<Settings, 'id' | 'defaultPaymentMethodId'> = {
+  displayName: '', onboardedAt: null,
   currency: 'COP', locale: 'es-CO', quincenaStartDays: [10, 25],
   reminderDefaultDaysBefore: 1, theme: 'system',
 };

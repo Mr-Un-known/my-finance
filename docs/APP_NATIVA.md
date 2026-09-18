@@ -19,10 +19,12 @@ no al navegador.
 **Verlo en un iPhone desde acá:**
 
 ```bash
-npm run dev -- --port 5199        # en una terminal
-npm run preview:iphone            # en otra: ventana WebKit, iPhone 14 Pro
+npm run preview:iphone            # ventana WebKit, iPhone 14 Pro, interactiva
 npm run preview:iphone -- --shots # solo capturas en preview-shots/
 ```
+
+Levanta el dev server por su cuenta si no hay uno corriendo, y lo baja al
+cerrar la ventana. Si ya tenés uno en el 5199, lo reutiliza.
 
 WebKit es el mismo motor que Safari de iOS, con viewport, user-agent y
 safe-area de iPhone. Para una app web, ver esto es ver la app.

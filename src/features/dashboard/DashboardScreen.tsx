@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Screen } from '@/components/ui/Screen';
@@ -7,6 +7,7 @@ import { MonthNav, monthName } from '@/components/ui/MonthNav';
 import { db } from '@/data/db';
 import { localRepository, DEFAULT_SETTINGS } from '@/data/local/localRepository';
 import { seedDemoTransactions } from '@/data/local/demoData';
+import { ensureMonthMaterialized } from '@/data/local/materialize';
 import { formatMoney } from '@/domain/money/format';
 import { calculateMonthBalance } from '@/domain/quincena/balance';
 import { calculateMonthFlow } from '@/domain/totals/available';
@@ -35,6 +36,11 @@ export function DashboardScreen() {
   const [cursor, setCursor] = useState({ y: todayYear, m: todayMonth });
   const { y: year, m: month } = cursor;
   const isCurrentMonth = year === todayYear && month === todayMonth;
+
+  // Los recurrentes solo estan materializados ~3 meses adelante. Al mirar
+  // un mes fuera de esa ventana hay que crearlos, si no el mes sale vacio
+  // aunque la regla no tenga fecha limite.
+  useEffect(() => { void ensureMonthMaterialized(year, month); }, [year, month]);
 
   const settings = useLiveQuery(() => localRepository.getSettings(), []) ?? DEFAULT_SETTINGS;
   const transactions = useLiveQuery(() => db.transactions.toArray(), []) ?? [];
@@ -102,7 +108,7 @@ export function DashboardScreen() {
 
   if (transactions.length === 0) {
     return (
-      <Screen title="Inicio" subtitle={`${monthName(month)} ${year}`}>
+      <Screen title={settings.displayName ? `Hola, ${settings.displayName}` : 'Inicio'} subtitle={`${monthName(month)} ${year}`}>
         <EmptyState
           title="Todavía no hay movimientos"
           body="Registra tu primer gasto o ingreso, o carga datos de ejemplo para ver el dashboard funcionando."
@@ -113,7 +119,7 @@ export function DashboardScreen() {
   }
 
   return (
-    <Screen title="Inicio" right={nav}>
+    <Screen title={settings.displayName ? `Hola, ${settings.displayName}` : 'Inicio'} right={nav}>
       {/* Hero: como termina el mes si todo se cumple. */}
       <div
         style={{

@@ -1,54 +1,48 @@
 import { useState } from 'react';
 import { getSupabase, isSupabaseConfigured } from '@/data/supabase/client';
 import { useSession } from '@/features/auth/useSession';
-import { pushLocalToCloud, pullCloudToLocal } from '@/data/sync/syncService';
+import { syncBidirectional } from '@/data/sync/syncService';
 
 /**
- * Solo aparece si el usuario configuro las env vars de Supabase (Fase 13).
- * Sin eso, esta seccion no existe y la app sigue siendo 100% local.
+ * Solo aparece si el proyecto tiene Supabase configurado. La sincronizacion
+ * ya corre sola (ver useCloudSync); esto es el boton de "ahora mismo" y el
+ * lugar donde ver con que cuenta estas y cerrar sesion.
  */
 export function CloudSection() {
-  const [busy, setBusy] = useState<'push' | 'pull' | null>(null);
-  const [message, setMessage] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+  const [mensaje, setMensaje] = useState('');
   const { session } = useSession();
 
   if (!isSupabaseConfigured()) return null;
 
-  async function handlePush() {
-    setBusy('push'); setMessage('');
+  async function sincronizarAhora() {
+    setOcupado(true);
+    setMensaje('');
     try {
-      const result = await pushLocalToCloud();
-      setMessage(`Subidos ${result.pushed} movimientos nuevos o actualizados.`);
+      const r = await syncBidirectional();
+      setMensaje(`Listo. Subidos ${r.pushed}, bajados ${r.pulled}${r.deleted ? `, borrados ${r.deleted}` : ''}.`);
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : 'No se pudo subir.');
-    } finally { setBusy(null); }
-  }
-  async function handlePull() {
-    setBusy('pull'); setMessage('');
-    try {
-      const result = await pullCloudToLocal();
-      setMessage(`Bajados ${result.pulled} movimientos nuevos o actualizados.`);
-    } catch (e) {
-      setMessage(e instanceof Error ? e.message : 'No se pudo bajar.');
-    } finally { setBusy(null); }
+      setMensaje(e instanceof Error ? e.message : 'No se pudo sincronizar.');
+    } finally {
+      setOcupado(false);
+    }
   }
 
   return (
     <section style={{ marginBottom: 'var(--gap-xl)' }}>
-      <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', margin: '0 0 10px' }}>Nube</h2>
+      <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', margin: '0 0 10px' }}>Tu cuenta</h2>
+
       {session && (
-        <p style={{ fontSize: 12, color: 'var(--text-faint)', margin: '0 0 10px' }}>
-          Sesión: {session.user.email}
+        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', margin: '0 0 10px' }}>
+          Sesión iniciada como <strong>{session.user.email}</strong>. Entra con este correo y contraseña
+          en cualquier dispositivo y verás los mismos datos.
         </p>
       )}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-        <button type="button" onClick={handlePush} disabled={busy !== null} style={btnStyle}>
-          {busy === 'push' ? 'Subiendo…' : 'Subir a la nube'}
-        </button>
-        <button type="button" onClick={handlePull} disabled={busy !== null} style={btnStyle}>
-          {busy === 'pull' ? 'Bajando…' : 'Bajar de la nube'}
-        </button>
-      </div>
+
+      <button type="button" onClick={sincronizarAhora} disabled={ocupado} style={{ ...btnStyle, width: '100%', marginBottom: 8 }}>
+        {ocupado ? 'Sincronizando…' : 'Sincronizar ahora'}
+      </button>
+
       <button
         type="button"
         onClick={() => { void getSupabase().then((supabase) => supabase.auth.signOut()); }}
@@ -56,7 +50,8 @@ export function CloudSection() {
       >
         Cerrar sesión
       </button>
-      {message && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>{message}</p>}
+
+      {mensaje && <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: 8 }}>{mensaje}</p>}
     </section>
   );
 }

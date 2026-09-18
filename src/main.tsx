@@ -7,6 +7,8 @@ import { materializeRecurringRules } from './data/local/materialize';
 import './styles/index.css';
 
 void ensureSeedData().then(() => materializeRecurringRules());
+// La ventana por defecto cubre el mes pasado y ~3 adelante. Cuando el
+// usuario navega mas alla, cada pantalla pide su mes (ensureMonthMaterialized).
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

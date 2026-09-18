@@ -14,7 +14,8 @@ const USER = 'user-123';
 describe('settings round-trip', () => {
   it('fila -> dominio -> fila conserva todo', () => {
     const settings: Settings = {
-      id: 'singleton', currency: 'COP', locale: 'es-CO', quincenaStartDays: [10, 25],
+      id: 'singleton', displayName: 'Andrés', onboardedAt: '2026-09-18T10:00:00.000Z',
+      currency: 'COP', locale: 'es-CO', quincenaStartDays: [10, 25],
       defaultPaymentMethodId: 'pm-1', reminderDefaultDaysBefore: 2, theme: 'dark',
     };
     const row = settingsToRow(USER, settings);
