@@ -32,6 +32,8 @@ export interface Prefill {
   amountText?: string;
   date?: string;
   markPaidNow?: boolean;
+  categoryId?: string | null;
+  paymentMethodId?: string | null;
 }
 
 function initialValue(
@@ -56,8 +58,8 @@ function initialValue(
     concept: prefill?.concept ?? '',
     amountText: prefill?.amountText ?? '',
     date,
-    categoryId: null,
-    paymentMethodId: defaultPaymentMethodId,
+    categoryId: prefill?.categoryId ?? null,
+    paymentMethodId: prefill?.paymentMethodId ?? defaultPaymentMethodId,
     // Un movimiento con fecha de hoy o anterior ya ocurrió: se marca hecho.
     // Antes todo entraba como 'pendiente', lo que inflaba "por pagar" y
     // dejaba los ingresos fuera de lo recibido.

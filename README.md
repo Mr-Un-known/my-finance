@@ -27,8 +27,8 @@ ejemplo" para ver la app funcionando de una vez.
 | `npm run dev` | Servidor de desarrollo |
 | `npm run build` | Build de producción |
 | `npm run preview` | Sirve el build de producción localmente |
-| `npm run test` | 131 tests unitarios (Vitest) |
-| `npm run test:e2e` | 12 flujos end-to-end (Playwright), en Chromium y Safari móvil |
+| `npm run test` | 209 tests unitarios (Vitest) |
+| `npm run test:e2e` | 17 flujos end-to-end (Playwright), en Chromium y Safari móvil |
 | `npm run preview:iphone` | Abre la app en un iPhone simulado (WebKit); levanta el dev server solo. `-- --shots` deja capturas en `preview-shots/` |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | TypeScript, sin emitir (incluye `typecheck:e2e` por separado para `e2e/`) |
@@ -39,7 +39,7 @@ ejemplo" para ver la app funcionando de una vez.
 |---|---|
 | [docs/USER_MANUAL.md](docs/USER_MANUAL.md) | Cómo usar cada pantalla |
 | [docs/CUENTA.md](docs/CUENTA.md) | Cuenta, sincronización entre dispositivos y setup de Supabase |
-| [docs/ATAJOS_IOS.md](docs/ATAJOS_IOS.md) | Registrar ingresos desde el iPhone con Atajos |
+| [docs/ATAJOS_IOS.md](docs/ATAJOS_IOS.md) | Dictar gastos, y automatizar desde el SMS del banco con Atajos |
 | [mobile/README.md](mobile/README.md) | App nativa en Flutter: estado del port y cómo correrla |
 | [docs/APP_NATIVA.md](docs/APP_NATIVA.md) | Por qué PWA primero, y el orden del port a Flutter |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | De este código a tu iPhone, paso a paso |

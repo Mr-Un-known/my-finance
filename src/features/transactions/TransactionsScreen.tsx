@@ -14,7 +14,9 @@ import { quincenaKey } from '@/domain/quincena/quincena';
 import { withResolvedQuincena } from '@/domain/quincena/resolve';
 import { shiftMonth } from '@/domain/dates';
 import { todayISO } from '@/lib/todayISO';
-import type { Transaction, TransactionType } from '@/domain/types';
+import { parseUtterance } from '@/domain/nlp/parse';
+import { metodoPorTipo } from '@/domain/nlp/resolve';
+import type { Transaction } from '@/domain/types';
 import { groupByQuincena } from './groupByQuincena';
 import { TransactionRow } from './TransactionRow';
 import { TransactionForm, type Prefill } from './TransactionForm';
@@ -42,24 +44,51 @@ export function TransactionsScreen() {
   const paymentMethods = useLiveQuery(() => localRepository.listPaymentMethods(), []) ?? [];
   const transactions = useLiveQuery(() => db.transactions.toArray(), []) ?? [];
 
-  // Abrir el form desde una URL. Esto es lo que usa el Atajo de iOS:
-  //   /movimientos?nuevo=1&tipo=ingreso&monto=3000000&concepto=Sueldo&pagado=1
+  // Abrir el form desde una URL. Dos formas, ambas para Atajos de iOS:
+  //
+  //   campo por campo:
+  //     /movimientos?nuevo=1&tipo=ingreso&monto=3000000&concepto=Sueldo
+  //   en español, que la app interpreta:
+  //     /movimientos?texto=gasté 45 mil en el almuerzo
+  //     /movimientos?texto=<el SMS del banco entero>
+  //
+  // La segunda existe porque armar la URL campo por campo obliga al Atajo
+  // a sacar el monto con una expresión regular, y el formato del SMS lo
+  // decide el banco. Mandando el texto crudo, quien interpreta es la app —
+  // que además ya sabe qué categoría le pusiste la última vez.
   useEffect(() => {
-    if (params.get('nuevo') !== '1') return;
-    const tipo: TransactionType = params.get('tipo') === 'ingreso' ? 'income' : 'expense';
+    const texto = params.get('texto') ?? params.get('sms');
+    if (params.get('nuevo') !== '1' && !texto) return;
+
+    let nuevo: Prefill;
+    if (texto) {
+      const leido = parseUtterance(texto, todayISO());
+      nuevo = {
+        type: leido.type,
+        concept: leido.concept || undefined,
+        amountText: leido.amount != null ? String(leido.amount) : undefined,
+        date: leido.date,
+        categoryId: leido.categoryIdSugerida,
+        paymentMethodId: metodoPorTipo(paymentMethods, leido.metodo),
+        markPaidNow: leido.yaOcurrio,
+      };
+    } else {
+      nuevo = {
+        type: params.get('tipo') === 'ingreso' ? 'income' : 'expense',
+        concept: params.get('concepto') ?? undefined,
+        amountText: (params.get('monto') ?? '').replace(/[^0-9]/g, '') || undefined,
+        date: params.get('fecha') ?? undefined,
+        markPaidNow: params.get('pagado') === '1' ? true : undefined,
+      };
+    }
+
     setEditing(null);
-    setPrefill({
-      type: tipo,
-      concept: params.get('concepto') ?? undefined,
-      amountText: (params.get('monto') ?? '').replace(/[^0-9]/g, '') || undefined,
-      date: params.get('fecha') ?? undefined,
-      markPaidNow: params.get('pagado') === '1' ? true : undefined,
-    });
+    setPrefill(nuevo);
     setFormOpen(true);
     const next = new URLSearchParams(params);
-    for (const k of ['nuevo', 'tipo', 'monto', 'concepto', 'fecha', 'pagado']) next.delete(k);
+    for (const k of ['nuevo', 'tipo', 'monto', 'concepto', 'fecha', 'pagado', 'texto', 'sms']) next.delete(k);
     setParams(next, { replace: true });
-  }, [params, setParams]);
+  }, [params, setParams, paymentMethods]);
 
   const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const methodById = useMemo(() => new Map(paymentMethods.map((m) => [m.id, m])), [paymentMethods]);

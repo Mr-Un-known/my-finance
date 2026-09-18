@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { QuickEntrySheet } from '@/features/quick/QuickEntrySheet';
 import { haptic } from '@/lib/haptic';
 
 const TABS = [
@@ -13,6 +14,7 @@ const TABS = [
 export function TabBar() {
   const navigate = useNavigate();
   const [longPressOpen, setLongPressOpen] = useState(false);
+  const [hablarOpen, setHablarOpen] = useState(false);
   const [fabHidden, setFabHidden] = useState(false);
 
   // FAB se esconde al scrollear hacia abajo, aparece al scrollear hacia
@@ -111,9 +113,21 @@ export function TabBar() {
           onClose={() => setLongPressOpen(false)}
           onSelect={(action) => {
             setLongPressOpen(false);
-            if (action === 'gasto') navigate('/movimientos?nuevo=1');
+            if (action === 'hablar') setHablarOpen(true);
+            else if (action === 'gasto') navigate('/movimientos?nuevo=1');
             else if (action === 'ingreso') navigate('/movimientos?nuevo=1&tipo=ingreso');
             else if (action === 'recurrente') navigate('/ajustes/recurrentes?nuevo=1');
+          }}
+        />
+      )}
+      {hablarOpen && (
+        <QuickEntrySheet
+          onClose={() => setHablarOpen(false)}
+          onAjustar={(texto) => {
+            setHablarOpen(false);
+            // El formulario completo lo vuelve a interpretar: una sola
+            // definición de qué significa la frase, no dos.
+            navigate(`/movimientos?texto=${encodeURIComponent(texto)}`);
           }}
         />
       )}
@@ -169,7 +183,7 @@ function QuickActionSheet({
   onSelect,
 }: {
   onClose: () => void;
-  onSelect: (action: 'gasto' | 'ingreso' | 'recurrente') => void;
+  onSelect: (action: 'hablar' | 'gasto' | 'ingreso' | 'recurrente') => void;
 }) {
   return (
     <div
@@ -199,6 +213,12 @@ function QuickActionSheet({
         }}
       >
         <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--line-strong)', margin: '4px auto 12px' }} />
+        <ActionRow
+          emoji="🎙️"
+          label="Contarle a la app"
+          sub="Habla o escribe: “gasté 45 mil en el almuerzo”"
+          onClick={() => onSelect('hablar')}
+        />
         <ActionRow
           emoji="💸"
           label="Nuevo gasto"
