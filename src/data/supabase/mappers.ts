@@ -133,26 +133,37 @@ export function recurringRuleToRow(userId: string, r: RecurringRule): RecurringR
 
 export interface BudgetRow {
   id: string; user_id: string; category_id: string; year: number; month: number; amount: number;
+  updated_at: string;
 }
 export function budgetFromRow(row: BudgetRow): Budget {
-  return { id: row.id, categoryId: row.category_id, year: row.year, month: row.month, amount: row.amount };
+  return {
+    id: row.id, categoryId: row.category_id, year: row.year, month: row.month,
+    amount: row.amount, updatedAt: row.updated_at,
+  };
 }
 export function budgetToRow(userId: string, b: Budget): BudgetRow {
-  return { id: b.id, user_id: userId, category_id: b.categoryId, year: b.year, month: b.month, amount: b.amount };
+  return {
+    id: b.id, user_id: userId, category_id: b.categoryId, year: b.year, month: b.month,
+    amount: b.amount,
+    updated_at: b.updatedAt || new Date().toISOString(),
+  };
 }
 
 export interface ReminderRow {
   id: string; user_id: string; transaction_id: string; remind_at: string; status: string; sent_at: string | null;
+  updated_at: string;
 }
 export function reminderFromRow(row: ReminderRow): Reminder {
   return {
     id: row.id, transactionId: row.transaction_id, remindAt: row.remind_at,
     status: row.status as Reminder['status'], sentAt: row.sent_at ?? undefined,
+    updatedAt: row.updated_at,
   };
 }
 export function reminderToRow(userId: string, r: Reminder): ReminderRow {
   return {
     id: r.id, user_id: userId, transaction_id: r.transactionId, remind_at: r.remindAt,
     status: r.status, sent_at: r.sentAt ?? null,
+    updated_at: r.updatedAt || new Date().toISOString(),
   };
 }

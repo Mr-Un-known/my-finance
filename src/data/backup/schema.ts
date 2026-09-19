@@ -84,9 +84,13 @@ export const BudgetSchema = z.object({
   year: z.number().int(),
   month: z.number().int().min(1).max(12),
   amount: z.number(),
+  // default(''): un respaldo hecho antes de que los presupuestos se
+  // sincronizaran no trae este campo, y tiene que seguir restaurandose.
+  updatedAt: z.string().default(''),
 });
 
 export const ReminderSchema = z.object({
+  updatedAt: z.string().default(''),
   id: z.string().min(1),
   transactionId: z.string().min(1),
   remindAt: z.string(),

@@ -50,7 +50,14 @@ export function TransactionsScreen() {
   const paymentMethods = useLiveQuery(() => localRepository.listPaymentMethods(), []) ?? VACIO;
   const transactions = useLiveQuery(() => db.transactions.toArray(), []) ?? VACIO;
   // Lo que la app aprendió: el enlace del Atajo también tiene que usarlo.
-  const conceptIndex = useLiveQuery(() => db.conceptIndex.toArray(), []) ?? VACIO;
+  //
+  // SIN `?? VACIO` a propósito, al revés que los de arriba. useLiveQuery
+  // devuelve undefined mientras carga y [] cuando cargó y no hay nada;
+  // colapsar los dos en [] hace imposible distinguir "todavía no sé lo que
+  // aprendí" de "no he aprendido nada". El efecto de abajo necesita esa
+  // diferencia: si corre antes de tiempo con [], propone la categoría de la
+  // tabla de palabras clave y se pierde justo lo aprendido.
+  const conceptIndex = useLiveQuery(() => db.conceptIndex.toArray(), []);
 
   // Abrir el form desde una URL. Dos formas, ambas para Atajos de iOS:
   //
@@ -76,6 +83,11 @@ export function TransactionsScreen() {
     // Se notaba justo donde mas duele: un Atajo de iOS abriendo la app en
     // frio dejaba el gasto sin metodo de pago, sin forma de recuperarlo.
     if (paymentMethods.length === 0) return;
+    // Y esperar también a lo aprendido, por lo mismo: si el efecto corre
+    // antes de que Dexie conteste, el índice llega vacío y la categoría que
+    // el usuario ya había corregido se pierde en silencio. Se notaba como
+    // una intermitencia: a veces el Atajo acertaba y a veces no.
+    if (conceptIndex === undefined) return;
 
     let nuevo: Prefill;
     if (texto) {

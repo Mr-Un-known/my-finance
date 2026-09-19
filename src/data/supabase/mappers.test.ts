@@ -76,15 +76,28 @@ describe('recurringRule round-trip', () => {
 });
 
 describe('budget round-trip', () => {
-  it('conserva año, mes y monto', () => {
-    const budget: Budget = { id: 'b1', categoryId: 'cat-hogar', year: 2026, month: 9, amount: 3_000_000 };
+  it('conserva año, mes, monto y la fecha de modificación', () => {
+    const budget: Budget = {
+      id: 'b1', categoryId: 'cat-hogar', year: 2026, month: 9, amount: 3_000_000,
+      updatedAt: '2026-09-18T10:00:00.000Z',
+    };
     expect(budgetFromRow(budgetToRow(USER, budget))).toEqual(budget);
+  });
+
+  it('una fila sin fecha se estampa al subir, para que no pierda siempre', () => {
+    const budget: Budget = {
+      id: 'b1', categoryId: 'cat-hogar', year: 2026, month: 9, amount: 3_000_000, updatedAt: '',
+    };
+    expect(budgetToRow(USER, budget).updated_at).not.toBe('');
   });
 });
 
 describe('reminder round-trip', () => {
   it('conserva el estado y sentAt opcional', () => {
-    const reminder: Reminder = { id: 'rem1', transactionId: 't1', remindAt: '2026-09-16T09:00:00Z', status: 'scheduled' };
+    const reminder: Reminder = {
+      id: 'rem1', transactionId: 't1', remindAt: '2026-09-16T09:00:00Z', status: 'scheduled',
+      updatedAt: '2026-09-15T08:00:00.000Z',
+    };
     expect(reminderFromRow(reminderToRow(USER, reminder))).toEqual(reminder);
   });
 });

@@ -128,6 +128,12 @@ export interface Budget {
   year: number;
   month: number; // 1-12
   amount: number;
+  /**
+   * Lo estampa el repositorio al guardar. Sin esto no habia forma de
+   * sincronizarlos: el last-write-wins necesita saber cual de las dos
+   * copias es la reciente. Vacio = nunca se guardo, y pierde.
+   */
+  updatedAt: string;
 }
 
 export interface Reminder {
@@ -136,4 +142,10 @@ export interface Reminder {
   remindAt: string; // ISO datetime
   status: 'scheduled' | 'sent' | 'dismissed' | 'failed';
   sentAt?: string;
+  /**
+   * Igual que en Budget: sin esto no se pueden sincronizar. Hace falta
+   * porque el servidor los marca 'sent' y ese cambio tiene que poder
+   * ganarle a la copia local sin que la local lo pise de vuelta.
+   */
+  updatedAt: string;
 }

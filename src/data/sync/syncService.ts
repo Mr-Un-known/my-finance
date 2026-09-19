@@ -18,24 +18,17 @@
 import { db } from '../db';
 import { supabaseRepository } from '../supabase/supabaseRepository';
 import { applyRemoteDeletions, listRemoteTombstones, saveRemoteTombstones } from '../supabase/deletions';
+import { listRemoteBudgets, saveRemoteBudgets } from '../supabase/budgets';
 import { deletedIdsOf, mergeTombstones, type Tombstone } from './tombstones';
+import { conciliarPresupuestos } from './presupuestos';
+import { recordatoriosASubir } from './recordatorios';
+import { masNuevo as newer } from './masNuevo';
 import type { Settings, Transaction } from '@/domain/types';
 
 export interface SyncResult {
   pushed: number;
   pulled: number;
   deleted: number;
-}
-
-function newer(a: string, b: string): boolean {
-  const ta = new Date(a).getTime();
-  const tb = new Date(b).getTime();
-  // Una fecha vacia o invalida nunca gana: es lo que devuelve la nube
-  // cuando todavia no hay fila, y lo que tiene una fila local que nunca
-  // se guardo.
-  if (Number.isNaN(ta)) return false;
-  if (Number.isNaN(tb)) return true;
-  return ta > tb;
 }
 
 /**
@@ -96,6 +89,11 @@ async function applyTombstonesLocally(tombstones: Tombstone[]): Promise<number> 
     const existe = await tabla[t.entity].get(t.entityId);
     if (existe) {
       await tabla[t.entity].delete(t.entityId);
+      // Igual que localRepository.deleteTransaction: el recordatorio se va
+      // con su movimiento, aunque el borrado venga de otro dispositivo.
+      if (t.entity === 'transactions') {
+        await db.reminders.where('transactionId').equals(t.entityId).delete();
+      }
       borrados += 1;
     }
   }
@@ -109,12 +107,14 @@ export async function pullCloudToLocal(): Promise<SyncResult> {
   await db.deletions.bulkPut(todas);
   const deleted = await applyTombstonesLocally(remoteTombstones);
 
-  const [remoteTx, categories, methods, rules, settings] = await Promise.all([
+  const [remoteTx, categories, methods, rules, settings, remoteBudgets, remoteReminders] = await Promise.all([
     supabaseRepository.listTransactions(),
     supabaseRepository.listCategories(),
     supabaseRepository.listPaymentMethods(),
     supabaseRepository.listRecurringRules(),
     supabaseRepository.getSettings(),
+    listRemoteBudgets(),
+    supabaseRepository.listReminders(),
   ]);
 
   // Nada que este borrado vuelve a entrar, venga de donde venga.
@@ -143,6 +143,21 @@ export async function pullCloudToLocal(): Promise<SyncResult> {
   );
   await db.settings.put(elegirSettings(await db.settings.get('singleton'), settings));
 
+  // Presupuestos: se emparejan por categoria+mes, no por id — ver
+  // presupuestos.ts. Van DESPUES de las categorias porque en Postgres
+  // apuntan a ellas con una FK.
+  const planPresupuestos = conciliarPresupuestos(await db.budgets.toArray(), remoteBudgets);
+  if (planPresupuestos.borrarLocal.length > 0) await db.budgets.bulkDelete(planPresupuestos.borrarLocal);
+  if (planPresupuestos.guardarLocal.length > 0) await db.budgets.bulkPut(planPresupuestos.guardarLocal);
+
+  // Recordatorios: last-write-wins por id a secas, sin las vueltas de los
+  // presupuestos, porque su id ES el del movimiento — dos dispositivos
+  // generan el mismo. Bajarlos importa para que el 'sent' que pone el
+  // servidor al enviar la notificacion no lo pise de vuelta esta copia.
+  const recordatoriosVivos = remoteReminders.filter((r) => !borradoTx.has(r.transactionId));
+  const recordatoriosAGuardar = await conservarMasNuevo(recordatoriosVivos, (id) => db.reminders.get(id));
+  if (recordatoriosAGuardar.length > 0) await db.reminders.bulkPut(recordatoriosAGuardar);
+
   const localAll = await db.transactions.toArray();
   const localById = new Map(localAll.map((t) => [t.id, t]));
   const toPut: Transaction[] = [];
@@ -153,7 +168,11 @@ export async function pullCloudToLocal(): Promise<SyncResult> {
   }
   if (toPut.length > 0) await db.transactions.bulkPut(toPut);
 
-  return { pushed: 0, pulled: toPut.length, deleted };
+  return {
+    pushed: 0,
+    pulled: toPut.length + planPresupuestos.guardarLocal.length + recordatoriosAGuardar.length,
+    deleted,
+  };
 }
 
 export async function pushLocalToCloud(): Promise<SyncResult> {
@@ -167,13 +186,17 @@ export async function pushLocalToCloud(): Promise<SyncResult> {
   const borradoPm = deletedIdsOf(tombstones, 'paymentMethods');
   const borradoRr = deletedIdsOf(tombstones, 'recurringRules');
 
-  const [localTx, remoteTx, categories, methods, rules, settings] = await Promise.all([
+  const [localTx, remoteTx, categories, methods, rules, settings, localBudgets, remoteBudgets, localReminders, remoteReminders] = await Promise.all([
     db.transactions.toArray(),
     supabaseRepository.listTransactions(),
     db.categories.toArray(),
     db.paymentMethods.toArray(),
     db.recurringRules.toArray(),
     db.settings.get('singleton'),
+    db.budgets.toArray(),
+    listRemoteBudgets(),
+    db.reminders.toArray(),
+    supabaseRepository.listReminders(),
   ]);
 
   // Categorías y métodos antes que transacciones: las FK de Postgres
@@ -182,6 +205,12 @@ export async function pushLocalToCloud(): Promise<SyncResult> {
   for (const m of methods.filter((m) => !borradoPm.has(m.id))) await supabaseRepository.savePaymentMethod(m);
   for (const r of rules.filter((r) => !borradoRr.has(r.id))) await supabaseRepository.saveRecurringRule(r);
   if (settings) await supabaseRepository.saveSettings(settings);
+
+  // Presupuestos: despues de las categorias, que es a donde apunta su FK, y
+  // solo los que ganan por fecha. Se salta el presupuesto cuya categoria fue
+  // borrada: la FK lo rechazaria y tumbaria el push entero.
+  const planPresupuestos = conciliarPresupuestos(localBudgets, remoteBudgets);
+  await saveRemoteBudgets(planPresupuestos.subir.filter((b) => !borradoCat.has(b.categoryId)));
 
   const remoteById = new Map(remoteTx.map((t) => [t.id, t]));
   let pushed = 0;
@@ -193,7 +222,17 @@ export async function pushLocalToCloud(): Promise<SyncResult> {
       pushed += 1;
     }
   }
-  return { pushed, pulled: 0, deleted: tombstones.length };
+
+  // Recordatorios AL FINAL: su FK apunta a transactions, asi que el
+  // movimiento tiene que existir ya alla. Ver recordatorios.ts para por que
+  // se filtran los huerfanos.
+  const vivos = new Set(localTx.filter((t) => !borradoTx.has(t.id)).map((t) => t.id));
+  for (const r of recordatoriosASubir(localReminders, remoteReminders, vivos)) {
+    await supabaseRepository.saveReminder(r);
+    pushed += 1;
+  }
+
+  return { pushed: pushed + planPresupuestos.subir.length, pulled: 0, deleted: tombstones.length };
 }
 
 export async function syncBidirectional(): Promise<SyncResult> {

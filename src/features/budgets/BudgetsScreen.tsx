@@ -49,6 +49,8 @@ export function BudgetsScreen() {
       year,
       month,
       amount,
+      // La fecha real la estampa localRepository.saveBudget.
+      updatedAt: existing?.updatedAt ?? '',
     });
     setEditing(null);
   }

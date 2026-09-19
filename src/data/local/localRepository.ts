@@ -92,7 +92,14 @@ export const localRepository: Repository = {
       }
     }
   },
-  deleteTransaction: async (id) => { await db.transactions.delete(id); await borrarConLapida('transactions', id); },
+  deleteTransaction: async (id) => {
+    await db.transactions.delete(id);
+    // Su recordatorio se va con el. En Postgres lo hace el ON DELETE
+    // CASCADE; aca hay que hacerlo a mano, o quedan huerfanos que ademas
+    // el push intentaria subir contra una FK que ya no existe.
+    await db.reminders.where('transactionId').equals(id).delete();
+    await borrarConLapida('transactions', id);
+  },
 
   listRecurringRules: () => db.recurringRules.toArray(),
   saveRecurringRule: async (rule) => { await db.recurringRules.put(sellar(rule)); },
@@ -100,10 +107,12 @@ export const localRepository: Repository = {
 
   listBudgets: (year, month) =>
     db.budgets.where('[year+month]').equals([year, month]).toArray(),
-  saveBudget: async (budget) => { await db.budgets.put(budget); },
+  // sellar como el resto: sin updatedAt no hay con que decidir cual copia
+  // gana al sincronizar entre dispositivos.
+  saveBudget: async (budget) => { await db.budgets.put(sellar(budget)); },
 
   listReminders: () => db.reminders.toArray(),
-  saveReminder: async (reminder) => { await db.reminders.put(reminder); },
+  saveReminder: async (reminder) => { await db.reminders.put(sellar(reminder)); },
 
   async exportAll() {
     const [settings, categories, paymentMethods, transactions, recurringRules, budgets, reminders] =
