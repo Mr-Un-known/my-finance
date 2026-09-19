@@ -21,4 +21,7 @@ jobs:
       - run: npm run test
       - run: npm run build
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e -- --project=chromium
+      # 'aislamiento' aparte: es el test de que los datos de una cuenta no
+      # pasan a otra, y vive en su propio proyecto (dev server). Sin
+      # nombrarlo aqui, CI no lo correria nunca.
+      - run: npm run test:e2e -- --project=chromium --project=aislamiento

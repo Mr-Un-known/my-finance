@@ -13,14 +13,35 @@ import { test, expect } from '@playwright/test';
  * fuente que el bundle del preview no expone. Ver playwright.config.ts.
  */
 
+/** Lo mínimo que este test usa de una tabla de Dexie. */
+interface Tabla {
+  name: string;
+  clear(): Promise<void>;
+  count(): Promise<number>;
+  put(fila: unknown): Promise<unknown>;
+}
+interface ModuloDb {
+  db: { tables: Tabla[]; transactions: Tabla; categories: Tabla };
+}
+interface ModuloDueno {
+  asegurarDueno(entrante: string): Promise<boolean>;
+  duenoLocal(): Promise<string | null>;
+}
+
 test('los datos no cruzan entre cuentas', async ({ page }) => {
   const errores: string[] = [];
   page.on('pageerror', (e) => errores.push(String(e)));
   await page.goto('./');
 
   const r = await page.evaluate(async () => {
-    const { db } = await import('/my-finance/src/data/db.ts');
-    const { asegurarDueno, duenoLocal } = await import('/my-finance/src/data/sync/dueno.ts');
+    // Los especificadores van en variables a propósito: estos módulos los
+    // resuelve el NAVEGADOR contra el dev server. Como literales,
+    // TypeScript intentaría resolverlos en disco y no existen como esa
+    // ruta.
+    const rutaDb = '/my-finance/src/data/db.ts';
+    const rutaDueno = '/my-finance/src/data/sync/dueno.ts';
+    const { db } = (await import(rutaDb)) as ModuloDb;
+    const { asegurarDueno, duenoLocal } = (await import(rutaDueno)) as ModuloDueno;
 
     const sembrar = async (concepto: string) => {
       await db.transactions.put({
@@ -35,7 +56,7 @@ test('los datos no cruzan entre cuentas', async ({ page }) => {
     };
 
     // ── Caso 1: empezó sin cuenta y se registra. Sus datos DEBEN quedar.
-    await Promise.all(db.tables.map((t) => t.clear()));
+    await Promise.all(db.tables.map((t: Tabla) => t.clear()));
     await sembrar('gasto-de-ana');
     const limpio1 = await asegurarDueno('ana');
     const adopta = await db.transactions.count();
@@ -46,12 +67,14 @@ test('los datos no cruzan entre cuentas', async ({ page }) => {
 
     // ── Caso 3: ENTRA OTRA CUENTA. Nada de Ana puede quedar.
     const limpio3 = await asegurarDueno('beto');
+    const conteos = await Promise.all(
+      db.tables.filter((t: Tabla) => t.name !== 'meta').map((t: Tabla) => t.count()),
+    );
     const restos = {
       transacciones: await db.transactions.count(),
       categorias: await db.categories.count(),
       // Ninguna tabla puede quedar con rastros, ni las lápidas.
-      total: (await Promise.all(db.tables.filter((t) => t.name !== 'meta').map((t) => t.count())))
-        .reduce((a, b) => a + b, 0),
+      total: conteos.reduce((a: number, b: number) => a + b, 0),
     };
     const duenoAhora = await duenoLocal();
 
