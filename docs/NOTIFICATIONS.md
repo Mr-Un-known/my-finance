@@ -23,7 +23,11 @@ contra la documentación oficial, no supuestos):
 
 ```
 Guardas un gasto con fecha futura
-   → se crea/actualiza una fila en `reminders` (remind_at = fecha - X días)
+   → se crea/actualiza una fila en `reminders` EN LOCAL (IndexedDB),
+     con remind_at = fecha - X días
+   → la sincronización la sube a Postgres
+     (antes se escribía directo en la nube, y sin conexión se perdía
+      en silencio: el upsert fallaba y nadie reintentaba)
 pg_cron, cada 15 minutos
    → pg_net llama a la Edge Function `send-reminders`
 Edge Function
