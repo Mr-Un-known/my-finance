@@ -76,8 +76,12 @@ let activo: { abort(): void } | null = null;
  *
  * El contador se reinicia con cada palabra que llega, asi que solo salta
  * cuando de verdad no esta pasando nada.
+ *
+ * Cuatro segundos. Doce se sentian eternos con el boton en rojo sin que
+ * pasara nada. El precio: si alguien toca el microfono y tarda mas de eso
+ * en arrancar a hablar, se cancela y tiene que volver a tocarlo.
  */
-const SIN_NOTICIAS_MS = 12_000;
+const SIN_NOTICIAS_MS = 4_000;
 
 export function escuchar(opciones: {
   lang?: string;

@@ -265,8 +265,15 @@ test('si nadie contesta, el dictado se rinde y lo dice', async ({ page }) => {
   await hoja.getByRole('button', { name: 'Dictar' }).click();
   await expect(hoja.getByRole('button', { name: 'Dejar de escuchar' })).toBeVisible();
 
-  // Pasan los segundos y no llega ni texto, ni error, ni fin.
-  await page.clock.fastForward(13_000);
+  // A los 3 segundos todavía está escuchando: el límite son 4, y esta mitad
+  // del test es la que lo fija. Sin ella, subir el tiempo a 12 otra vez
+  // pasaría desapercibido.
+  await page.clock.fastForward(3_000);
+  await expect(hoja.getByRole('button', { name: 'Dejar de escuchar' })).toBeVisible();
+  await expect(hoja.getByText(/Se quedó esperando/)).toBeHidden();
+
+  // Pasado el límite, y sin que llegue ni texto, ni error, ni fin, se rinde.
+  await page.clock.fastForward(2_000);
 
   await expect(hoja.getByText(/Se quedó esperando/)).toBeVisible();
   await expect(hoja.getByRole('button', { name: 'Dictar' })).toBeVisible();
