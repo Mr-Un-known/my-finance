@@ -25,7 +25,9 @@ export function OnboardingScreen({ settings }: { settings: Settings }) {
   const [paso, setPaso] = useState(0);
   const [nombre, setNombre] = useState(settings.displayName);
   const [moneda, setMoneda] = useState(settings.currency);
-  const [dias, setDias] = useState<[number, number]>(settings.quincenaStartDays);
+  // El LARGO de esta lista es el modo: uno = te pagan una vez al mes, dos =
+  // quincenal. No hay un campo aparte que pueda contradecirla.
+  const [dias, setDias] = useState<number[]>(settings.diasDePago);
   const [elegidas, setElegidas] = useState<Set<string>>(() => new Set(DEFAULT_CATEGORIES.map((c) => c.id)));
   const [guardando, setGuardando] = useState(false);
 
@@ -45,7 +47,7 @@ export function OnboardingScreen({ settings }: { settings: Settings }) {
         displayName: nombre.trim(),
         currency: monedaElegida.code,
         locale: monedaElegida.locale,
-        quincenaStartDays: dias,
+        diasDePago: dias,
         onboardedAt: new Date().toISOString(),
       });
       // Las categorías ya están sembradas: se quitan las que no eligió.
@@ -129,16 +131,49 @@ export function OnboardingScreen({ settings }: { settings: Settings }) {
 
           {actual === 'quincenas' && (
             <Pregunta
-              titulo="¿Qué días te pagan?"
-              ayuda="La app se organiza por quincenas. Si te pagan una vez al mes, deja los dos días iguales."
+              titulo="¿Cada cuánto te entra la plata?"
+              ayuda="La app agrupa tus gastos entre un pago y el siguiente. Se puede cambiar después en Ajustes."
             >
-              <div style={{ display: 'flex', gap: 12 }}>
-                <DiaInput label="Primer pago" valor={dias[0]} onChange={(v) => setDias([v, dias[1]])} />
-                <DiaInput label="Segundo pago" valor={dias[1]} onChange={(v) => setDias([dias[0], v])} />
+              <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                <OpcionPago
+                  titulo="Dos veces al mes"
+                  detalle="Quincenal"
+                  activa={dias.length > 1}
+                  onClick={() => setDias((d) => (d.length > 1 ? d : [10, 25]))}
+                />
+                <OpcionPago
+                  titulo="Una vez al mes"
+                  detalle="Mensual"
+                  activa={dias.length === 1}
+                  // Arranca en el día 1, el mes del calendario. Conservar el
+                  // primer día quincenal (el 10 por defecto) le movería el mes
+                  // sin que lo haya pedido: "una vez al mes" casi siempre
+                  // quiere decir "el mes normal". Si le pagan otro día, lo
+                  // cambia justo debajo.
+                  onClick={() => setDias((d) => (d.length === 1 ? d : [1]))}
+                />
               </div>
-              <p style={{ marginTop: 16, fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
-                Quedaría: quincena del {Math.min(...dias)} y quincena del {Math.max(...dias)}.
-              </p>
+
+              {dias.length > 1 ? (
+                <>
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <DiaInput label="Primer pago" valor={dias[0] ?? 10} onChange={(v) => setDias([v, dias[1] ?? 25])} />
+                    <DiaInput label="Segundo pago" valor={dias[1] ?? 25} onChange={(v) => setDias([dias[0] ?? 10, v])} />
+                  </div>
+                  <p style={{ marginTop: 16, fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
+                    Quedaría: quincena del {Math.min(...dias)} y quincena del {Math.max(...dias)}.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <DiaInput label="Día de pago" valor={dias[0] ?? 1} onChange={(v) => setDias([v])} />
+                  <p style={{ marginTop: 16, fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
+                    {dias[0] === 1
+                      ? 'Tu mes va del 1 al último día, como el calendario.'
+                      : `Tu mes va del ${dias[0]} de un mes al ${(dias[0] ?? 1) - 1} del siguiente.`}
+                  </p>
+                </>
+              )}
             </Pregunta>
           )}
 
@@ -202,6 +237,35 @@ function Pregunta({ titulo, ayuda, children }: { titulo: string; ayuda: string; 
       <p style={{ margin: '0 0 22px', color: 'var(--text-muted)', fontSize: 'var(--text-base)', lineHeight: 'var(--lh-normal)' }}>{ayuda}</p>
       {children}
     </div>
+  );
+}
+
+/**
+ * "Una vez al mes" o "dos veces al mes". Se pregunta asi, por como cobra la
+ * persona, y no con las palabras "mensual" y "quincenal" sueltas: nadie
+ * elige un modo de agrupacion, elige como le pagan.
+ */
+function OpcionPago({ titulo, detalle, activa, onClick }: {
+  titulo: string; detalle: string; activa: boolean; onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => { haptic('light'); onClick(); }}
+      aria-pressed={activa}
+      style={{
+        flex: 1, minHeight: 'var(--tap)', padding: '12px 14px',
+        borderRadius: 'var(--radius-s)',
+        border: `2px solid ${activa ? 'var(--q10)' : 'var(--line)'}`,
+        background: activa ? 'var(--q10-soft)' : 'var(--surface)',
+        color: 'var(--text)', cursor: 'pointer', textAlign: 'left',
+      }}
+    >
+      <span style={{ display: 'block', fontWeight: 700, fontSize: 'var(--text-sm)' }}>{titulo}</span>
+      <span style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 2 }}>
+        {detalle}
+      </span>
+    </button>
   );
 }
 

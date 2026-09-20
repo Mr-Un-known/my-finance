@@ -128,19 +128,63 @@ export function SettingsScreen() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={sectionTitle}>Quincenas</h2>
-        <Row label="Primera empieza el día">
-          <NumberInput
-            value={settings.quincenaStartDays[0]}
-            onCommit={(v) => patch({ quincenaStartDays: [v, settings.quincenaStartDays[1]] })}
-          />
+        <h2 style={sectionTitle}>Cómo te pagan</h2>
+        <Row label="Te entra la plata">
+          <div style={{ display: 'flex', gap: 6 }}>
+            {([
+              { etiqueta: 'Dos veces al mes', quincenal: true },
+              { etiqueta: 'Una vez al mes', quincenal: false },
+            ]).map((opcion) => {
+              const activa = (settings.diasDePago.length > 1) === opcion.quincenal;
+              return (
+                <button
+                  key={opcion.etiqueta}
+                  type="button"
+                  aria-pressed={activa}
+                  onClick={() => patch({
+                    // Mensual arranca en el día 1, el mes del calendario:
+                    // heredar el primer día quincenal le movería el mes sin
+                    // que lo haya pedido. El día se ajusta justo debajo.
+                    diasDePago: opcion.quincenal ? [10, 25] : [1],
+                  })}
+                  style={{
+                    minHeight: 'var(--tap)', padding: '0 12px',
+                    borderRadius: 'var(--radius-s)',
+                    border: `1.5px solid ${activa ? 'var(--q10)' : 'var(--line)'}`,
+                    background: activa ? 'var(--q10-soft)' : 'var(--surface)',
+                    color: 'var(--text)', fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                  }}
+                >
+                  {opcion.etiqueta}
+                </button>
+              );
+            })}
+          </div>
         </Row>
-        <Row label="Segunda empieza el día">
-          <NumberInput
-            value={settings.quincenaStartDays[1]}
-            onCommit={(v) => patch({ quincenaStartDays: [settings.quincenaStartDays[0], v] })}
-          />
-        </Row>
+
+        {settings.diasDePago.length > 1 ? (
+          <>
+            <Row label="Primera empieza el día">
+              <NumberInput
+                value={settings.diasDePago[0] ?? 10}
+                onCommit={(v) => patch({ diasDePago: [v, settings.diasDePago[1] ?? 25] })}
+              />
+            </Row>
+            <Row label="Segunda empieza el día">
+              <NumberInput
+                value={settings.diasDePago[1] ?? 25}
+                onCommit={(v) => patch({ diasDePago: [settings.diasDePago[0] ?? 10, v] })}
+              />
+            </Row>
+          </>
+        ) : (
+          <Row label="Tu mes empieza el día">
+            <NumberInput
+              value={settings.diasDePago[0] ?? 1}
+              onCommit={(v) => patch({ diasDePago: [v] })}
+            />
+          </Row>
+        )}
       </section>
 
       {creditMethod && (

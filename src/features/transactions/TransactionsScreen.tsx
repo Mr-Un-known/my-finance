@@ -11,13 +11,13 @@ import { seedDemoTransactions } from '@/data/local/demoData';
 import { ensureMonthMaterialized } from '@/data/local/materialize';
 import { maybeScheduleReminder } from '@/features/notifications/scheduleReminder';
 import { formatMoney } from '@/domain/money/format';
-import { quincenaKey } from '@/domain/quincena/quincena';
-import { withResolvedQuincena } from '@/domain/quincena/resolve';
+import { periodosDelMes } from '@/domain/periodo/periodo';
+import { conPeriodoResuelto } from '@/domain/periodo/resolve';
 import { shiftMonth } from '@/domain/dates';
 import { todayISO } from '@/lib/todayISO';
 import { interpretarTexto } from '@/domain/nlp/interpretar';
 import type { Transaction } from '@/domain/types';
-import { groupByQuincena } from './groupByQuincena';
+import { groupByPeriodo } from './groupByPeriodo';
 import { TransactionRow } from './TransactionRow';
 import { TransactionForm, type Prefill } from './TransactionForm';
 import { VACIO } from '@/lib/vacio';
@@ -140,14 +140,16 @@ export function TransactionsScreen() {
       const q = query.trim().toLowerCase();
       return transactions.filter((t) => t.concept.toLowerCase().includes(q));
     }
-    const keys = [quincenaKey(cursor.y, cursor.m, 1), quincenaKey(cursor.y, cursor.m, 2)];
-    return withResolvedQuincena(transactions, settings.quincenaStartDays)
+    // Tantas claves como periodos tenga el mes. Pedir Q1 y Q2 a mano dejaba
+    // fuera movimientos en cuanto los periodos no fueran exactamente dos.
+    const keys = periodosDelMes(cursor.y, cursor.m, settings.diasDePago);
+    return conPeriodoResuelto(transactions, settings.diasDePago)
       .filter((t) => keys.includes(t.resolvedQuincenaKey));
-  }, [transactions, query, searching, cursor, settings.quincenaStartDays]);
+  }, [transactions, query, searching, cursor, settings.diasDePago]);
 
   const groups = useMemo(
-    () => groupByQuincena(visible, settings.quincenaStartDays),
-    [visible, settings.quincenaStartDays],
+    () => groupByPeriodo(visible, settings.diasDePago),
+    [visible, settings.diasDePago],
   );
 
   const monthTotal = useMemo(() => {

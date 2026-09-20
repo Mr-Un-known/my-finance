@@ -25,8 +25,17 @@ export interface Settings {
   displayName: string;
   currency: string; // 'COP'
   locale: string; // 'es-CO'
-  /** Dia en que arranca cada quincena. Por defecto [10, 25]. */
-  quincenaStartDays: [number, number];
+  /**
+   * Los dias del mes en que entra plata.
+   *
+   * EL NUMERO DE DIAS ES EL MODO: uno = te pagan una vez al mes, dos =
+   * quincenal. No hay un campo aparte que diga "mensual" o "quincenal" y
+   * pueda contradecir a esta lista.
+   *
+   * Antes era una tupla fija de dos (quincenaStartDays), que es justo lo
+   * que impedia el modo mensual. Ver domain/periodo/periodo.ts.
+   */
+  diasDePago: number[];
   defaultPaymentMethodId: Id | null;
   reminderDefaultDaysBefore: number;
   theme: 'system' | 'light' | 'dark';

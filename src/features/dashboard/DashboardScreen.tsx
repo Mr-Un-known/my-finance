@@ -9,11 +9,11 @@ import { localRepository, DEFAULT_SETTINGS } from '@/data/local/localRepository'
 import { seedDemoTransactions } from '@/data/local/demoData';
 import { ensureMonthMaterialized } from '@/data/local/materialize';
 import { formatMoney } from '@/domain/money/format';
-import { calculateMonthBalance } from '@/domain/quincena/balance';
+import { calcularBalanceMes } from '@/domain/periodo/balance';
 import { calculateMonthFlow } from '@/domain/totals/available';
 import { calculatePorPagar } from '@/domain/totals/porPagar';
-import { calculateQuincena, quincenaKey } from '@/domain/quincena/quincena';
-import { withResolvedQuincena } from '@/domain/quincena/resolve';
+import { calcularPeriodo, periodosDelMes } from '@/domain/periodo/periodo';
+import { conPeriodoResuelto } from '@/domain/periodo/resolve';
 import { shiftMonth } from '@/domain/dates';
 import { formatShortDate } from '@/lib/formatShortDate';
 import { todayISO, nowISO } from '@/lib/todayISO';
@@ -50,18 +50,29 @@ export function DashboardScreen() {
   const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
   const resolved = useMemo(
-    () => withResolvedQuincena(transactions, settings.quincenaStartDays),
-    [transactions, settings.quincenaStartDays],
+    () => conPeriodoResuelto(transactions, settings.diasDePago),
+    [transactions, settings.diasDePago],
   );
 
-  const monthKeys = useMemo(() => [quincenaKey(year, month, 1), quincenaKey(year, month, 2)], [year, month]);
+  // Tantas claves como periodos tenga el mes: dos si te pagan quincenal,
+  // una si te pagan una vez al mes. Pedir Q1 y Q2 a mano dejaba fuera
+  // movimientos —y reventaba— en cuanto los periodos no eran dos.
+  const monthKeys = useMemo(
+    () => periodosDelMes(year, month, settings.diasDePago),
+    [year, month, settings.diasDePago],
+  );
 
   const monthTransactions = useMemo(
     () => resolved.filter((t) => monthKeys.includes(t.resolvedQuincenaKey)),
     [resolved, monthKeys],
   );
 
-  const monthBalance = useMemo(() => calculateMonthBalance(resolved, year, month), [resolved, year, month]);
+  // Con los días de pago: sin ellos cae en el valor por defecto [10, 25] y
+  // dibuja DOS periodos aunque te paguen una vez al mes — el segundo, vacío.
+  const monthBalance = useMemo(
+    () => calcularBalanceMes(resolved, year, month, settings.diasDePago),
+    [resolved, year, month, settings.diasDePago],
+  );
   const flow = useMemo(() => calculateMonthFlow(monthTransactions), [monthTransactions]);
 
   // Conjuntos disjuntos: un gasto con tarjeta cuenta UNA vez, en tarjeta.
@@ -81,8 +92,8 @@ export function DashboardScreen() {
   // — que es justo la que cruza el cambio de mes, el caso que el dominio
   // ya modela y tiene testeado.
   const claveHoy = useMemo(
-    () => calculateQuincena(today, settings.quincenaStartDays).key,
-    [today, settings.quincenaStartDays],
+    () => calcularPeriodo(today, settings.diasDePago).key,
+    [today, settings.diasDePago],
   );
   const activeQuincenaIdx = monthKeys.indexOf(claveHoy);
   const heroTintVar = activeQuincenaIdx === 1 ? '--q25-soft' : '--q10-soft';
@@ -175,22 +186,25 @@ export function DashboardScreen() {
         </div>
       </div>
 
-      {/* Dos quincenas */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-        <QuincenaCard
-          day={settings.quincenaStartDays[0]}
-          restante={monthBalance.quincenas[0].restante}
-          colorVar="--q10"
-          softVar="--q10-soft"
-          isActive={activeQuincenaIdx === 0}
-        />
-        <QuincenaCard
-          day={settings.quincenaStartDays[1]}
-          restante={monthBalance.quincenas[1].restante}
-          colorVar="--q25"
-          softVar="--q25-soft"
-          isActive={activeQuincenaIdx === 1}
-        />
+      {/* Un recuadro por periodo: dos si te pagan quincenal, uno si una vez al mes. */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${monthBalance.periodos.length}, 1fr)`,
+          gap: 10,
+          marginBottom: 14,
+        }}
+      >
+        {monthBalance.periodos.map((p, i) => (
+          <PeriodoCard
+            key={p.key}
+            label={etiquetaPeriodo(settings.diasDePago, i, month)}
+            restante={p.restante}
+            colorVar={i % 2 === 1 ? '--q25' : '--q10'}
+            softVar={i % 2 === 1 ? '--q25-soft' : '--q10-soft'}
+            isActive={activeQuincenaIdx === i}
+          />
+        ))}
       </div>
 
       {porPagar.count > 0 && (
@@ -342,8 +356,24 @@ function ExpectCard({ label, value, color, sign }: { label: string; value: numbe
   );
 }
 
-function QuincenaCard({ day, restante, colorVar, softVar, isActive }: {
-  day: number; restante: number; colorVar: string; softVar: string; isActive: boolean;
+/**
+ * Como se llama un periodo en el recuadro. Con dos o mas dias de pago es la
+ * palabra que la persona ya usa; con uno solo, decir "quincena" seria
+ * mentira, asi que se nombra el mes —o desde cuando empieza, si su mes no
+ * es el del calendario.
+ */
+function etiquetaPeriodo(dias: number[], indice: number, mes: number): string {
+  if (dias.length > 1) return `Quincena del ${dias[indice]}`;
+  const dia = dias[0] ?? 1;
+  if (dia === 1) {
+    const n = monthName(mes);
+    return n.charAt(0).toUpperCase() + n.slice(1);
+  }
+  return `Desde el ${dia}`;
+}
+
+function PeriodoCard({ label, restante, colorVar, softVar, isActive }: {
+  label: string; restante: number; colorVar: string; softVar: string; isActive: boolean;
 }) {
   return (
     <div
@@ -357,7 +387,7 @@ function QuincenaCard({ day, restante, colorVar, softVar, isActive }: {
     >
       {isActive && (
         <span
-          aria-label="Quincena activa"
+          aria-label="Periodo activo"
           style={{
             position: 'absolute', top: 8, right: 10, width: 6, height: 6,
             borderRadius: 3, background: `var(${colorVar})`,
@@ -365,7 +395,7 @@ function QuincenaCard({ day, restante, colorVar, softVar, isActive }: {
         />
       )}
       <p style={{ margin: '0 0 6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: `var(${colorVar})`, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-        Quincena del {day}
+        {label}
       </p>
       <p className="figures" style={{ margin: 0, fontSize: 'var(--text-lg)', fontWeight: 700, color: restante >= 0 ? 'var(--text)' : 'var(--danger-text)' }}>
         {formatMoney(restante)}

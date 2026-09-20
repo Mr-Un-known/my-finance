@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { groupByQuincena } from './groupByQuincena';
+import { groupByPeriodo } from './groupByPeriodo';
 import type { Transaction } from '@/domain/types';
 
 function tx(overrides: Partial<Transaction>): Transaction {
@@ -10,9 +10,9 @@ function tx(overrides: Partial<Transaction>): Transaction {
   };
 }
 
-describe('groupByQuincena', () => {
+describe('groupByPeriodo', () => {
   it('agrupa por quincena y las ordena cronologicamente: la del 10 antes que la del 25', () => {
-    const groups = groupByQuincena([
+    const groups = groupByPeriodo([
       tx({ date: '2026-09-10', amount: 10_000 }),
       tx({ date: '2026-09-25', amount: 20_000 }),
       tx({ date: '2026-08-12', amount: 5_000 }),
@@ -21,7 +21,7 @@ describe('groupByQuincena', () => {
   });
 
   it('asigna el color y la etiqueta correctos segun Q1/Q2', () => {
-    const groups = groupByQuincena([tx({ date: '2026-09-10' }), tx({ date: '2026-09-25' })]);
+    const groups = groupByPeriodo([tx({ date: '2026-09-10' }), tx({ date: '2026-09-25' })]);
     const q1 = groups.find((g) => g.key === '2026-09-Q1')!;
     const q2 = groups.find((g) => g.key === '2026-09-Q2')!;
     expect(q1.label).toBe('Quincena del 10');
@@ -30,8 +30,8 @@ describe('groupByQuincena', () => {
     expect(q2.colorVar).toBe('--q25');
   });
 
-  it('el balance de cada grupo coincide con calculateQuincenaBalance', () => {
-    const groups = groupByQuincena([
+  it('el balance de cada grupo coincide con calcularBalancePeriodo', () => {
+    const groups = groupByPeriodo([
       tx({ date: '2026-09-10', type: 'income', amount: 1_000_000 }),
       tx({ date: '2026-09-12', type: 'expense', amount: 300_000 }),
     ]);
@@ -40,6 +40,6 @@ describe('groupByQuincena', () => {
   });
 
   it('sin transacciones no hay grupos', () => {
-    expect(groupByQuincena([])).toEqual([]);
+    expect(groupByPeriodo([])).toEqual([]);
   });
 });

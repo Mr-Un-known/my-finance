@@ -15,7 +15,7 @@ describe('settings round-trip', () => {
   it('fila -> dominio -> fila conserva todo', () => {
     const settings: Settings = {
       id: 'singleton', displayName: 'Andrés', onboardedAt: '2026-09-18T10:00:00.000Z',
-      currency: 'COP', locale: 'es-CO', quincenaStartDays: [10, 25],
+      currency: 'COP', locale: 'es-CO', diasDePago: [10, 25],
       defaultPaymentMethodId: 'pm-1', reminderDefaultDaysBefore: 2, theme: 'dark',
       updatedAt: '2026-09-18T12:00:00.000Z',
     };

@@ -20,7 +20,11 @@ export function settingsFromRow(row: SettingsRow): Settings {
     onboardedAt: row.onboarded_at,
     currency: row.currency,
     locale: row.locale,
-    quincenaStartDays: [row.quincena_start_days[0] ?? 10, row.quincena_start_days[1] ?? 25],
+    // Tal cual viene, sin forzar dos: la columna es smallint[] de largo
+    // variable, y ese largo ES el modo. Antes esto lo recortaba siempre a
+    // dos elementos, asi que al bajar de la nube el modo mensual se
+    // convertia en quincenal solo.
+    diasDePago: row.quincena_start_days.length > 0 ? [...row.quincena_start_days] : [10, 25],
     defaultPaymentMethodId: row.default_payment_method_id,
     reminderDefaultDaysBefore: row.reminder_default_days_before,
     theme: row.theme as Settings['theme'],
@@ -31,7 +35,9 @@ export function settingsToRow(userId: string, s: Settings): SettingsRow {
   return {
     user_id: userId, display_name: s.displayName, onboarded_at: s.onboardedAt,
     currency: s.currency, locale: s.locale,
-    quincena_start_days: [...s.quincenaStartDays],
+    // La columna conserva su nombre viejo: renombrarla pediria una
+    // migracion y no cambiaria nada de lo que guarda.
+    quincena_start_days: [...s.diasDePago],
     default_payment_method_id: s.defaultPaymentMethodId,
     reminder_default_days_before: s.reminderDefaultDaysBefore,
     theme: s.theme,

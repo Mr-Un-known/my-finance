@@ -5,7 +5,7 @@ import type { Settings } from '@/domain/types';
 function s(overrides: Partial<Settings>): Settings {
   return {
     id: 'singleton', displayName: '', currency: 'COP', locale: 'es-CO',
-    quincenaStartDays: [10, 25], defaultPaymentMethodId: null,
+    diasDePago: [10, 25], defaultPaymentMethodId: null,
     reminderDefaultDaysBefore: 1, theme: 'system', onboardedAt: null,
     updatedAt: '', ...overrides,
   };

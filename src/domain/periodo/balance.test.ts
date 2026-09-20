@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { calculateMonthBalance, calculateQuincenaBalance } from './balance';
-import { withResolvedQuincena } from './resolve';
+import { calcularBalanceMes, calcularBalancePeriodo } from './balance';
+import { conPeriodoResuelto } from './resolve';
 import type { Transaction } from '../types';
 
 /** Reconstruye, con datos ficticios, la hoja de Septiembre del enunciado. */
@@ -29,32 +29,42 @@ function fixtureSeptiembre(): Transaction[] {
   ];
 }
 
-describe('calculateQuincenaBalance', () => {
+describe('calcularBalancePeriodo', () => {
   it('restante de la quincena del 10 == 1.215.000 (verificado contra la hoja real)', () => {
-    const withKeys = withResolvedQuincena(fixtureSeptiembre());
-    const balance = calculateQuincenaBalance(withKeys, '2026-09-Q1');
+    const withKeys = conPeriodoResuelto(fixtureSeptiembre());
+    const balance = calcularBalancePeriodo(withKeys, '2026-09-Q1');
     expect(balance.restante).toBe(1_215_000);
   });
 
   it('restante de la quincena del 25 == 1.167.006, incluyendo el Arriendo pagado el 1 de octubre', () => {
-    const withKeys = withResolvedQuincena(fixtureSeptiembre());
-    const balance = calculateQuincenaBalance(withKeys, '2026-09-Q2');
+    const withKeys = conPeriodoResuelto(fixtureSeptiembre());
+    const balance = calcularBalancePeriodo(withKeys, '2026-09-Q2');
     expect(balance.restante).toBe(1_167_006);
   });
 
   it('ignora los movimientos cancelados', () => {
-    const withKeys = withResolvedQuincena(fixtureSeptiembre());
-    const balance = calculateQuincenaBalance(withKeys, '2026-09-Q1');
+    const withKeys = conPeriodoResuelto(fixtureSeptiembre());
+    const balance = calcularBalancePeriodo(withKeys, '2026-09-Q1');
     // si el cancelado contara, el restante seria 1.215.000 - 999.999
     expect(balance.expense).not.toBe(1_500_000 + 94_000 + 13_000 + 999_999);
   });
 });
 
-describe('calculateMonthBalance', () => {
+describe('calcularBalanceMes', () => {
   it('sobrante del mes == suma de los dos restantes == 2.382.006', () => {
-    const withKeys = withResolvedQuincena(fixtureSeptiembre());
-    const month = calculateMonthBalance(withKeys, 2026, 9);
+    const withKeys = conPeriodoResuelto(fixtureSeptiembre());
+    const month = calcularBalanceMes(withKeys, 2026, 9);
     expect(month.sobrante).toBe(2_382_006);
-    expect(month.sobrante).toBe(month.quincenas[0].restante + month.quincenas[1].restante);
+    // Ahora los periodos son una lista, no siempre dos: el sobrante es la
+    // suma de los que haya.
+    expect(month.periodos).toHaveLength(2);
+    expect(month.sobrante).toBe(month.periodos.reduce((a, p) => a + p.restante, 0));
+  });
+
+  it('con un solo día de pago hay un periodo y el sobrante es el suyo', () => {
+    const withKeys = conPeriodoResuelto(fixtureSeptiembre(), [1]);
+    const month = calcularBalanceMes(withKeys, 2026, 9, [1]);
+    expect(month.periodos).toHaveLength(1);
+    expect(month.sobrante).toBe(month.periodos[0]?.restante);
   });
 });

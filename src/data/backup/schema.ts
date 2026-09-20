@@ -7,7 +7,7 @@ import { z } from 'zod';
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha invalida');
 
-export const SettingsSchema = z.object({
+const SettingsBase = z.object({
   id: z.literal('singleton'),
   // Opcionales con default: un backup exportado antes de que existieran
   // estos campos tiene que seguir importandose sin error.
@@ -16,11 +16,30 @@ export const SettingsSchema = z.object({
   updatedAt: z.string().default(''),
   currency: z.string().min(1),
   locale: z.string().min(1),
-  quincenaStartDays: z.tuple([z.number().int().min(1).max(31), z.number().int().min(1).max(31)]),
+  // Lista, no tupla: uno = te pagan una vez al mes, dos = quincenal.
+  diasDePago: z.array(z.number().int().min(1).max(31)).min(1).max(4).default([10, 25]),
   defaultPaymentMethodId: z.string().nullable(),
   reminderDefaultDaysBefore: z.number().int().min(0),
   theme: z.enum(['system', 'light', 'dark']),
 });
+
+/**
+ * Un respaldo hecho antes de este cambio guarda los dias con el nombre
+ * viejo, `quincenaStartDays`. Sin traducirlo, el default de arriba se
+ * activaria y quien tuviera quincenas en, digamos, el 5 y el 20 las
+ * recuperaria como 10 y 25 sin enterarse: sus movimientos se reagruparian
+ * solos al restaurar.
+ */
+export const SettingsSchema = z.preprocess((valor) => {
+  if (valor && typeof valor === 'object' && !Array.isArray(valor)) {
+    const obj = valor as Record<string, unknown>;
+    if (obj.diasDePago === undefined && Array.isArray(obj.quincenaStartDays)) {
+      const { quincenaStartDays, ...resto } = obj;
+      return { ...resto, diasDePago: quincenaStartDays };
+    }
+  }
+  return valor;
+}, SettingsBase);
 
 export const CategorySchema = z.object({
   id: z.string().min(1),

@@ -29,7 +29,7 @@ export const DEFAULT_SETTINGS: Settings = {
   displayName: '',
   currency: 'COP',
   locale: 'es-CO',
-  quincenaStartDays: [10, 25], // quincena del 10 y quincena del 25
+  diasDePago: [10, 25], // dos dias de pago = quincenal
   defaultPaymentMethodId: null,
   reminderDefaultDaysBefore: 1,
   theme: 'system',
@@ -45,7 +45,17 @@ export const DEFAULT_SETTINGS: Settings = {
  * la app (displayName, onboardedAt...) y la UI se rompe en silencio.
  */
 export function withDefaults(stored: Settings | undefined): Settings {
-  return { ...DEFAULT_SETTINGS, ...(stored ?? {}), id: 'singleton' };
+  const base = { ...DEFAULT_SETTINGS, ...(stored ?? {}), id: 'singleton' as const };
+
+  // Puente para quien ya venia usando la app: sus dias vivian en
+  // `quincenaStartDays`, que ahora se llama `diasDePago`. Sin esto, el
+  // spread de arriba dejaria el valor por defecto y alguien con quincenas
+  // en, digamos, el 5 y el 20 volveria al 10 y 25 sin enterarse.
+  const viejo = (stored as unknown as { quincenaStartDays?: unknown } | undefined)?.quincenaStartDays;
+  if (!Array.isArray(stored?.diasDePago) && Array.isArray(viejo)) {
+    return { ...base, diasDePago: [...(viejo as number[])] };
+  }
+  return base;
 }
 
 export const localRepository: Repository = {
